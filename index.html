@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機定時同步下載器 (隨機檔名版)</title>
+    <title>多機定時同步下載器v3</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 25px; background: #f4f7f6; color: #333; }
         .card { background: white; max-width: 400px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .clock { font-size: 32px; font-weight: bold; margin: 10px 0; color: #007bff; }
         input[type="time"] { font-size: 20px; padding: 6px; margin: 10px 0; }
         .btn { font-size: 16px; padding: 10px 20px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin: 5px 0; width: 100%; }
-        .btn-test { background: #ff9800; }
+        .btn-test { background: #6c757d; }
         .btn-arm { background: #28a745; }
-        .btn:disabled { background: #6c757d; }
-        .status { margin-top: 15px; font-size: 15px; font-weight: bold; color: #dc3545; }
+        .btn:disabled { background: #cccccc; }
+        .status { margin-top: 15px; font-size: 15px; font-weight: bold; color: #007bff; }
         .log-box { font-size: 12px; color: #555; text-align: left; background: #eef; padding: 10px; border-radius: 6px; margin-top: 15px; max-height: 120px; overflow-y: auto; }
     </style>
 </head>
@@ -23,17 +23,17 @@
     <h2>⏰ 多機定時同步下載器</h2>
     <div id="currentTime" class="clock">00:00:00</div>
 
-    <!-- 步驟 1：授權按鈕 -->
-    <button class="btn btn-test" onclick="testDownloadPermission()">步驟 1：點此允許多檔案下載權限</button>
-    
+    <!-- 設定時間排程（可以直接操作） -->
+    <label for="targetTime"><b>設定預計下載時間：</b></label><br>
+    <input type="time" id="targetTime" step="1"><br>
+    <button id="startBtn" class="btn btn-arm" onclick="armTimer()">確認啟動排程</button>
+
+    <div id="status" class="status">狀態：等待設定時間...</div>
+
     <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
 
-    <!-- 步驟 2：排程時間設定 -->
-    <label for="targetTime"><b>步驟 2：設定預計下載時間：</b></label><br>
-    <input type="time" id="targetTime" step="1"><br>
-    <button id="startBtn" class="btn btn-arm" onclick="armTimer()">步驟 3：確認啟動排程</button>
-
-    <div id="status" class="status">狀態：請先進行步驟 1 授權</div>
+    <!-- 授權測試（改為選填，非必要） -->
+    <button class="btn btn-test" onclick="executeDownload()">（可選）測試下載與授權</button>
 
     <div class="log-box" id="logBox">
         <b>📝 檔名生成記錄：</b><br>
@@ -62,7 +62,7 @@
     }
     setInterval(updateClock, 1000);
 
-    // 2. 隨機檔名生成器 (格式：doc_年月日_時分秒_隨機碼4位.pdf)
+    // 2. 隨機檔名生成器 (格式：pdfA_20260827_153000_a8z2.pdf)
     function generateRandomFileName(prefix = "file") {
         const now = new Date();
         const dateStr = now.getFullYear() +
@@ -72,21 +72,11 @@
             String(now.getMinutes()).padStart(2, '0') +
             String(now.getSeconds()).padStart(2, '0');
         
-        // 產生 4 位數英文數字隨機碼
         const randomStr = Math.random().toString(36).substring(2, 6);
-        
         return `${prefix}_${dateStr}_${randomStr}.pdf`;
     }
 
-    // 3. 測試授權按鈕
-    function testDownloadPermission() {
-        alert("即將進行下載測試，請在瀏覽器跳出提示時選擇「允許」或「永遠允許」。");
-        executeDownload();
-        document.getElementById("status").innerText = "已完成授權測試！請設定步驟 2 時間";
-        document.getElementById("status").style.color = "#007bff";
-    }
-
-    // 4. 設定時間排程
+    // 3. 直接設定時間排程
     function armTimer() {
         const inputVal = document.getElementById("targetTime").value;
         if (!inputVal) return alert("請先選擇時間！");
@@ -97,20 +87,19 @@
         document.getElementById("startBtn").disabled = true;
     }
 
-    // 5. 到點觸發
+    // 4. 時間到達時觸發
     function triggerDownload() {
-        document.getElementById("status").innerText = "🚀 時間到！正在自動下載...";
+        document.getElementById("status").innerText = "🚀 時間到！正在下載並強制改名...";
         document.getElementById("status").style.color = "#007bff";
         executeDownload();
-        targetTimeString = ""; // 防止重複觸發
+        targetTimeString = "";
     }
 
-    // 6. 執行下載並綁定「動態隨機檔名」
-    function executeDownload() {
+    // 5. 核心改名邏輯：透過 fetch 取得 Blob 物件以繞過跨域改名限制
+    async function executeDownload() {
         const fileName1 = generateRandomFileName("pdfA");
         const fileName2 = generateRandomFileName("pdfB");
 
-        // 記錄到畫面上方便對照
         document.getElementById("logBox").innerHTML = `
             <b>📝 檔名生成記錄：</b><br>
             檔1: ${fileName1}<br>
@@ -118,23 +107,45 @@
         `;
 
         // 觸發下載 1
-        downloadFile(url1, fileName1);
+        downloadWithCustomName(url1, fileName1);
 
         // 延遲 800ms 觸發下載 2
         setTimeout(() => {
-            downloadFile(url2, fileName2);
+            downloadWithCustomName(url2, fileName2);
         }, 800);
     }
 
-    // 利用 HTML5 download 屬性強制給予新檔名
-    function downloadFile(url, customFileName) {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = customFileName; // 關鍵：覆寫伺服器原始檔名
-        a.target = "_blank";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+    // 突破跨域改名限制的函式
+    async function downloadWithCustomName(fileUrl, newFileName) {
+        try {
+            // 先抓取檔案二進位資料
+            const response = await fetch(fileUrl);
+            const blob = await response.blob();
+            
+            // 建立本地 Blob URL
+            const blobUrl = URL.createObjectURL(blob);
+            
+            // 建立下載連結（同域 Blob URL 下 `download` 屬性 100% 生效）
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = newFileName;
+            document.body.appendChild(a);
+            a.click();
+            
+            // 清理資源
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        } catch (err) {
+            console.error("Blob 下載失敗，改用備用直接下載：", err);
+            // 備用機制
+            const a = document.createElement("a");
+            a.href = fileUrl;
+            a.download = newFileName;
+            a.target = "_blank";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
     }
 </script>
 
