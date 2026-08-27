@@ -5,91 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>多機定時同步下載器</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 30px; background-color: #f4f7f6; color: #333; }
-        .card { background: white; max-width: 400px; margin: 0 auto; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .clock { font-size: 32px; font-weight: bold; margin: 15px 0; color: #007bff; }
-        input[type="time"] { font-size: 20px; padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; margin: 10px 0; }
-        button { font-size: 18px; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        button:disabled { background: #6c757d; }
-        .status { margin-top: 15px; font-size: 16px; font-weight: bold; color: #dc3545; }
+        body { font-family: -apple-system, sans-serif; text-align: center; padding: 25px; background: #f4f7f6; color: #333; }
+        .card { background: white; max-width: 400px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .clock { font-size: 32px; font-weight: bold; margin: 10px 0; color: #007bff; }
+        input[type="time"] { font-size: 20px; padding: 6px; margin: 10px 0; }
+        .btn { font-size: 16px; padding: 10px 20px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin: 5px 0; width: 100%; }
+        .btn-test { background: #ff9800; }
+        .btn-arm { background: #28a745; }
+        .btn:disabled { background: #6c757d; }
+        .status { margin-top: 15px; font-size: 15px; font-weight: bold; color: #dc3545; }
+        .hint { font-size: 13px; color: #666; margin-top: 10px; text-align: left; background: #eef; padding: 10px; border-radius: 6px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>⏰ 自動定時下載器</h2>
-    <p>目前手機系統時間：</p>
+    <h2>⏰ 多機定時同步下載</h2>
     <div id="currentTime" class="clock">00:00:00</div>
 
-    <label for="targetTime"><b>設定預計下載時間：</b></label><br>
+    <!-- 步驟 1：解除封鎖測試 -->
+    <button class="btn btn-test" onclick="testDownloadPermission()">步驟 1：點此允許多檔案下載權限</button>
+    
+    <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+
+    <!-- 步驟 2：設定時間排程 -->
+    <label for="targetTime"><b>步驟 2：設定下載時間：</b></label><br>
     <input type="time" id="targetTime" step="1"><br>
+    <button id="startBtn" class="btn btn-arm" onclick="armTimer()">步驟 3：確認啟動排程</button>
 
-    <button id="startBtn" onclick="armTimer()">確認啟動排程</button>
+    <div id="status" class="status">狀態：請先進行步驟 1 授權</div>
 
-    <div id="status" class="status">狀態：等待設定...</div>
+    <div class="hint">
+        <b>⚠️ 操作指南：</b><br>
+        1. 首次使用請先按【步驟 1】，若瀏覽器詢問「是否允許下載多個檔案」，請務必選擇<b>「允許」</b>或<b>「永遠允許」</b>。<br>
+        2. 設定時間並按下【步驟 3】後，<b>請保持螢幕常亮，勿關閉網頁</b>。
+    </div>
 </div>
 
 <script>
-    // 兩條下載連結
     const url1 = "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/241e3b3db2cc47e0bb056f054e4532dc.pdf";
     const url2 = "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/1915ccb2f13946f9acffc74f82c529c2.pdf";
 
-    let timerInterval = null;
     let targetTimeString = "";
 
-    // 1. 每秒更新螢幕上的目前時間
+    // 1. 每秒時鐘更新
     function updateClock() {
         const now = new Date();
         const hrs = String(now.getHours()).padStart(2, '0');
         const mins = String(now.getMinutes()).padStart(2, '0');
         const secs = String(now.getSeconds()).padStart(2, '0');
-        
         const currentTimeStr = `${hrs}:${mins}:${secs}`;
         document.getElementById("currentTime").innerText = currentTimeStr;
 
-        // 檢查是否到達設定時間
+        // 到達指定時間，觸發下載
         if (targetTimeString && currentTimeStr === targetTimeString) {
             triggerDownload();
         }
     }
     setInterval(updateClock, 1000);
 
-    // 2. 按下按鈕，鎖定時間並開始倒數
+    // 2. 測試授權按鈕（人工點擊觸發，用來解鎖 Chrome Pop-up 白名單）
+    function testDownloadPermission() {
+        alert("即將嘗試觸發一次雙檔案下載，請在瀏覽器彈出提示時選擇「允許」或「永遠允許」。");
+        executeDownload();
+        document.getElementById("status").innerText = "已完成授權測試！請設定步驟 2 時間";
+        document.getElementById("status").style.color = "#007bff";
+    }
+
+    // 3. 設定排程時間
     function armTimer() {
         const inputVal = document.getElementById("targetTime").value;
-        if (!inputVal) {
-            alert("請先選擇時間！");
-            return;
-        }
-
-        // 如果輸入只有 HH:MM，自動補上 :00 秒
+        if (!inputVal) return alert("請先選擇時間！");
         targetTimeString = inputVal.length === 5 ? `${inputVal}:00` : inputVal;
 
         document.getElementById("status").innerText = `已排程！將在 ${targetTimeString} 自動下載`;
         document.getElementById("status").style.color = "#28a745";
         document.getElementById("startBtn").disabled = true;
-
-        // ⚠️ 重要：預先請求權限，避免瀏覽器在時間到時阻擋彈出視窗
-        alert(`排程成功！請保持此網頁開啟，不要關閉螢幕。\n時間到達 ${targetTimeString} 時會自動下載。`);
     }
 
-    // 3. 觸發下載邏輯
+    // 4. 定時觸發點
     function triggerDownload() {
-        document.getElementById("status").innerText = "🚀 時間到！正在觸發下載...";
+        document.getElementById("status").innerText = "🚀 時間到！正在自動下載...";
         document.getElementById("status").style.color = "#007bff";
+        executeDownload();
+        targetTimeString = ""; // 重設，避免重複觸發
+    }
 
-        // 下載第一個檔案
+    // 5. 執行下載的底層邏輯
+    function executeDownload() {
         downloadFile(url1, "file1.pdf");
-
-        // 延遲 500 毫秒下載第二個檔案，防止瀏覽器阻擋多檔連發
         setTimeout(() => {
             downloadFile(url2, "file2.pdf");
-            document.getElementById("status").innerText = "✅ 下載指令已完成發送！";
-            targetTimeString = ""; // 重設，避免重複觸發
-        }, 500);
+        }, 800);
     }
 
-    // 動態建立 <a> 標籤強制下載
     function downloadFile(url, fileName) {
         const a = document.createElement("a");
         a.href = url;
