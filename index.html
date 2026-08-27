@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機定時同步下載器</title>
+    <title>多機定時同步下載器 (隨機檔名版)</title>
     <style>
-        body { font-family: -apple-system, sans-serif; text-align: center; padding: 25px; background: #f4f7f6; color: #333; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 25px; background: #f4f7f6; color: #333; }
         .card { background: white; max-width: 400px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .clock { font-size: 32px; font-weight: bold; margin: 10px 0; color: #007bff; }
         input[type="time"] { font-size: 20px; padding: 6px; margin: 10px 0; }
@@ -14,31 +14,30 @@
         .btn-arm { background: #28a745; }
         .btn:disabled { background: #6c757d; }
         .status { margin-top: 15px; font-size: 15px; font-weight: bold; color: #dc3545; }
-        .hint { font-size: 13px; color: #666; margin-top: 10px; text-align: left; background: #eef; padding: 10px; border-radius: 6px; }
+        .log-box { font-size: 12px; color: #555; text-align: left; background: #eef; padding: 10px; border-radius: 6px; margin-top: 15px; max-height: 120px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>⏰ 多機定時同步下載</h2>
+    <h2>⏰ 多機定時同步下載器</h2>
     <div id="currentTime" class="clock">00:00:00</div>
 
-    <!-- 步驟 1：解除封鎖測試 -->
+    <!-- 步驟 1：授權按鈕 -->
     <button class="btn btn-test" onclick="testDownloadPermission()">步驟 1：點此允許多檔案下載權限</button>
     
     <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
 
-    <!-- 步驟 2：設定時間排程 -->
-    <label for="targetTime"><b>步驟 2：設定下載時間：</b></label><br>
+    <!-- 步驟 2：排程時間設定 -->
+    <label for="targetTime"><b>步驟 2：設定預計下載時間：</b></label><br>
     <input type="time" id="targetTime" step="1"><br>
     <button id="startBtn" class="btn btn-arm" onclick="armTimer()">步驟 3：確認啟動排程</button>
 
     <div id="status" class="status">狀態：請先進行步驟 1 授權</div>
 
-    <div class="hint">
-        <b>⚠️ 操作指南：</b><br>
-        1. 首次使用請先按【步驟 1】，若瀏覽器詢問「是否允許下載多個檔案」，請務必選擇<b>「允許」</b>或<b>「永遠允許」</b>。<br>
-        2. 設定時間並按下【步驟 3】後，<b>請保持螢幕常亮，勿關閉網頁</b>。
+    <div class="log-box" id="logBox">
+        <b>📝 檔名生成記錄：</b><br>
+        (等待啟動...)
     </div>
 </div>
 
@@ -48,7 +47,7 @@
 
     let targetTimeString = "";
 
-    // 1. 每秒時鐘更新
+    // 1. 每秒更新時鐘
     function updateClock() {
         const now = new Date();
         const hrs = String(now.getHours()).padStart(2, '0');
@@ -57,22 +56,37 @@
         const currentTimeStr = `${hrs}:${mins}:${secs}`;
         document.getElementById("currentTime").innerText = currentTimeStr;
 
-        // 到達指定時間，觸發下載
         if (targetTimeString && currentTimeStr === targetTimeString) {
             triggerDownload();
         }
     }
     setInterval(updateClock, 1000);
 
-    // 2. 測試授權按鈕（人工點擊觸發，用來解鎖 Chrome Pop-up 白名單）
+    // 2. 隨機檔名生成器 (格式：doc_年月日_時分秒_隨機碼4位.pdf)
+    function generateRandomFileName(prefix = "file") {
+        const now = new Date();
+        const dateStr = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') + "_" +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
+        
+        // 產生 4 位數英文數字隨機碼
+        const randomStr = Math.random().toString(36).substring(2, 6);
+        
+        return `${prefix}_${dateStr}_${randomStr}.pdf`;
+    }
+
+    // 3. 測試授權按鈕
     function testDownloadPermission() {
-        alert("即將嘗試觸發一次雙檔案下載，請在瀏覽器彈出提示時選擇「允許」或「永遠允許」。");
+        alert("即將進行下載測試，請在瀏覽器跳出提示時選擇「允許」或「永遠允許」。");
         executeDownload();
         document.getElementById("status").innerText = "已完成授權測試！請設定步驟 2 時間";
         document.getElementById("status").style.color = "#007bff";
     }
 
-    // 3. 設定排程時間
+    // 4. 設定時間排程
     function armTimer() {
         const inputVal = document.getElementById("targetTime").value;
         if (!inputVal) return alert("請先選擇時間！");
@@ -83,26 +97,40 @@
         document.getElementById("startBtn").disabled = true;
     }
 
-    // 4. 定時觸發點
+    // 5. 到點觸發
     function triggerDownload() {
         document.getElementById("status").innerText = "🚀 時間到！正在自動下載...";
         document.getElementById("status").style.color = "#007bff";
         executeDownload();
-        targetTimeString = ""; // 重設，避免重複觸發
+        targetTimeString = ""; // 防止重複觸發
     }
 
-    // 5. 執行下載的底層邏輯
+    // 6. 執行下載並綁定「動態隨機檔名」
     function executeDownload() {
-        downloadFile(url1, "file1.pdf");
+        const fileName1 = generateRandomFileName("pdfA");
+        const fileName2 = generateRandomFileName("pdfB");
+
+        // 記錄到畫面上方便對照
+        document.getElementById("logBox").innerHTML = `
+            <b>📝 檔名生成記錄：</b><br>
+            檔1: ${fileName1}<br>
+            檔2: ${fileName2}
+        `;
+
+        // 觸發下載 1
+        downloadFile(url1, fileName1);
+
+        // 延遲 800ms 觸發下載 2
         setTimeout(() => {
-            downloadFile(url2, "file2.pdf");
+            downloadFile(url2, fileName2);
         }, 800);
     }
 
-    function downloadFile(url, fileName) {
+    // 利用 HTML5 download 屬性強制給予新檔名
+    function downloadFile(url, customFileName) {
         const a = document.createElement("a");
         a.href = url;
-        a.download = fileName;
+        a.download = customFileName; // 關鍵：覆寫伺服器原始檔名
         a.target = "_blank";
         document.body.appendChild(a);
         a.click();
