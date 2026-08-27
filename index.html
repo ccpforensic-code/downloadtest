@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機定時同步下載器v3</title>
+    <title>多機定時同步下載器 (含耗時統計)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 25px; background: #f4f7f6; color: #333; }
         .card { background: white; max-width: 400px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -14,7 +14,8 @@
         .btn-arm { background: #28a745; }
         .btn:disabled { background: #cccccc; }
         .status { margin-top: 15px; font-size: 15px; font-weight: bold; color: #007bff; }
-        .log-box { font-size: 12px; color: #555; text-align: left; background: #eef; padding: 10px; border-radius: 6px; margin-top: 15px; max-height: 120px; overflow-y: auto; }
+        .log-box { font-size: 13px; color: #333; text-align: left; background: #eef; padding: 12px; border-radius: 6px; margin-top: 15px; max-height: 180px; overflow-y: auto; line-height: 1.5; }
+        .highlight { color: #d9534f; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -23,7 +24,6 @@
     <h2>⏰ 多機定時同步下載器</h2>
     <div id="currentTime" class="clock">00:00:00</div>
 
-    <!-- 設定時間排程（可以直接操作） -->
     <label for="targetTime"><b>設定預計下載時間：</b></label><br>
     <input type="time" id="targetTime" step="1"><br>
     <button id="startBtn" class="btn btn-arm" onclick="armTimer()">確認啟動排程</button>
@@ -32,11 +32,10 @@
 
     <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
 
-    <!-- 授權測試（改為選填，非必要） -->
-    <button class="btn btn-test" onclick="executeDownload()">（可選）測試下載與授權</button>
+    <button class="btn btn-test" onclick="executeDownload()">（可選）測試下載與測速</button>
 
     <div class="log-box" id="logBox">
-        <b>📝 檔名生成記錄：</b><br>
+        <b>📝 下載記錄與耗時：</b><br>
         (等待啟動...)
     </div>
 </div>
@@ -62,7 +61,7 @@
     }
     setInterval(updateClock, 1000);
 
-    // 2. 隨機檔名生成器 (格式：pdfA_20260827_153000_a8z2.pdf)
+    // 2. 隨機檔名生成器
     function generateRandomFileName(prefix = "file") {
         const now = new Date();
         const dateStr = now.getFullYear() +
@@ -76,7 +75,7 @@
         return `${prefix}_${dateStr}_${randomStr}.pdf`;
     }
 
-    // 3. 直接設定時間排程
+    // 3. 設定排程時間
     function armTimer() {
         const inputVal = document.getElementById("targetTime").value;
         if (!inputVal) return alert("請先選擇時間！");
@@ -87,64 +86,71 @@
         document.getElementById("startBtn").disabled = true;
     }
 
-    // 4. 時間到達時觸發
+    // 4. 到點觸發
     function triggerDownload() {
-        document.getElementById("status").innerText = "🚀 時間到！正在下載並強制改名...";
+        document.getElementById("status").innerText = "🚀 時間到！發起下載並計算耗時...";
         document.getElementById("status").style.color = "#007bff";
         executeDownload();
         targetTimeString = "";
     }
 
-    // 5. 核心改名邏輯：透過 fetch 取得 Blob 物件以繞過跨域改名限制
+    // 5. 獨立發起單檔下載並精準計算該檔耗時
+    async function fetchAndSaveWithTiming(fileUrl, fileName) {
+        const startTime = performance.now(); // 紀錄開始毫秒數
+        
+        const response = await fetch(fileUrl);
+        const blob = await response.blob();
+        
+        const endTime = performance.now(); // 紀錄完成毫秒數
+        const durationSec = ((endTime - startTime) / 1000).toFixed(2); // 計算耗時秒數（保留兩位小數）
+
+        // 儲存檔案到手機
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+        return { fileName, durationSec, size: blob.size };
+    }
+
+    // 6. 核心執行：平行發起下載並顯示總耗時
     async function executeDownload() {
         const fileName1 = generateRandomFileName("pdfA");
         const fileName2 = generateRandomFileName("pdfB");
 
         document.getElementById("logBox").innerHTML = `
-            <b>📝 檔名生成記錄：</b><br>
-            檔1: ${fileName1}<br>
-            檔2: ${fileName2}
+            <b>📝 下載記錄與耗時：</b><br>
+            ⏳ 下載中，請稍候...
         `;
 
-        // 觸發下載 1
-        downloadWithCustomName(url1, fileName1);
+        const totalStartTime = performance.now();
 
-        // 延遲 800ms 觸發下載 2
-        setTimeout(() => {
-            downloadWithCustomName(url2, fileName2);
-        }, 800);
-    }
-
-    // 突破跨域改名限制的函式
-    async function downloadWithCustomName(fileUrl, newFileName) {
         try {
-            // 先抓取檔案二進位資料
-            const response = await fetch(fileUrl);
-            const blob = await response.blob();
-            
-            // 建立本地 Blob URL
-            const blobUrl = URL.createObjectURL(blob);
-            
-            // 建立下載連結（同域 Blob URL 下 `download` 屬性 100% 生效）
-            const a = document.createElement("a");
-            a.href = blobUrl;
-            a.download = newFileName;
-            document.body.appendChild(a);
-            a.click();
-            
-            // 清理資源
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+            // 同時平行發起兩個下載任務
+            const [res1, res2] = await Promise.all([
+                fetchAndSaveWithTiming(url1, fileName1),
+                fetchAndSaveWithTiming(url2, fileName2)
+            ]);
+
+            const totalEndTime = performance.now();
+            const totalDurationSec = ((totalEndTime - totalStartTime) / 1000).toFixed(2);
+
+            // 更新介面顯示耗時
+            document.getElementById("logBox").innerHTML = `
+                <b>📝 下載成功耗時統計：</b><br>
+                📄 檔1 (${res1.fileName})：<span class="highlight">${res1.durationSec} 秒</span><br>
+                📄 檔2 (${res2.fileName})：<span class="highlight">${res2.durationSec} 秒</span><br>
+                ⏱️ <b>平行總耗時：<span class="highlight">${totalDurationSec} 秒</span></b>
+            `;
+
+            document.getElementById("status").innerText = "✅ 下載完成！";
         } catch (err) {
-            console.error("Blob 下載失敗，改用備用直接下載：", err);
-            // 備用機制
-            const a = document.createElement("a");
-            a.href = fileUrl;
-            a.download = newFileName;
-            a.target = "_blank";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            console.error(err);
+            document.getElementById("logBox").innerHTML = `❌ 下載失敗或遭跨域阻擋。`;
         }
     }
 </script>
