@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機定時同步下載器 (高可用對時版)</title>
+    <title>多機定時同步下載器 (模擬人手點擊版)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 20px; background: #f4f7f6; color: #333; }
         .card { background: white; max-width: 450px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -34,7 +34,7 @@
 
     <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
 
-    <button class="btn btn-test" onclick="executeDownload()">（可選）測試 7 檔真實速平行下載</button>
+    <button class="btn btn-test" onclick="executeDownload()">（可選）測試模擬人手點擊下載</button>
 
     <div class="log-box" id="logBox">
         <b>📝 下載記錄與耗時：</b><br>
@@ -56,19 +56,15 @@
     let targetTimeString = "";
     let timeOffsetOffsetMs = 0;
 
-    // 🌐 多重來源獲取網路精準時間
+    // 🌐 多重來源對時 (香港時間)
     async function syncTimeWithHKT() {
         const syncElem = document.getElementById("syncStatus");
-        
-        // 備用對時 API 清單
         const timeEndpoints = [
             "https://timeapi.io/api/time/current/zone?timeZone=Asia/Hong_Kong",
             "https://worldtimeapi.org/api/timezone/Asia/Hong_Kong"
         ];
 
         let success = false;
-
-        // 方法 A: 嘗試公開時間 API
         for (const endpoint of timeEndpoints) {
             try {
                 const startReq = performance.now();
@@ -88,12 +84,9 @@
                     success = true;
                     break;
                 }
-            } catch (e) {
-                console.warn("備用對時來源嘗試失敗：", endpoint);
-            }
+            } catch (e) {}
         }
 
-        // 方法 B: 若 API 皆失敗，利用 HEAD 請求讀取 HTTP Header Date 進行對時
         if (!success) {
             try {
                 const startReq = performance.now();
@@ -101,7 +94,6 @@
                 const text = await response.text();
                 const endReq = performance.now();
                 
-                // 解析 Cloudflare 伺服器時間 (ts)
                 const tsMatch = text.match(/ts=(.+)/);
                 if (tsMatch && tsMatch[1]) {
                     const serverMs = parseFloat(tsMatch[1]) * 1000;
@@ -109,9 +101,7 @@
                     timeOffsetOffsetMs = (serverMs + networkLatency) - Date.now();
                     success = true;
                 }
-            } catch (e) {
-                console.error("HTTP Header 對時失敗", e);
-            }
+            } catch (e) {}
         }
 
         if (success) {
@@ -157,27 +147,30 @@
         return `file${index + 1}_${dateStr}_${randomStr}.ai`;
     }
 
+    // 輔助工具：模擬點擊停頓延遲 (毫秒)
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
     // 3. 設定排程時間
     function armTimer() {
         const inputVal = document.getElementById("targetTime").value;
         if (!inputVal) return alert("請先選擇時間！");
         targetTimeString = inputVal.length === 5 ? `${inputVal}:00` : inputVal;
 
-        document.getElementById("status").innerText = `已排程！將在 ${targetTimeString} (HKT) 自動平行下載 7 個檔案`;
+        document.getElementById("status").innerText = `已排程！將在 ${targetTimeString} (HKT) 模擬人手順序下載 7 個檔案`;
         document.getElementById("status").style.color = "#28a745";
         document.getElementById("startBtn").disabled = true;
     }
 
     // 4. 時間到達時觸發
     function triggerDownload() {
-        document.getElementById("status").innerText = "🚀 香港時間到！發起 7 檔平行下載中...";
+        document.getElementById("status").innerText = "🚀 時間到！開始模擬人手逐點下載...";
         document.getElementById("status").style.color = "#007bff";
         executeDownload();
         targetTimeString = "";
     }
 
-    // 5. 核心：防快取＋精準計時
-    async function fetchAndSaveWithTiming(fileUrl, fileName, index) {
+    // 5. 單檔抓取與記錄
+    async function fetchAndSaveSingle(fileUrl, fileName, index) {
         const startTime = performance.now();
         
         const antiCacheUrl = `${fileUrl}?nocache=${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -188,50 +181,52 @@
         const endTime = performance.now();
         const durationSec = ((endTime - startTime) / 1000).toFixed(2);
 
+        // 建立 <a> 標籤模擬人手點擊下載動作
         const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = blobUrl;
         a.download = fileName;
         document.body.appendChild(a);
-        a.click();
+        a.click(); // 👈 模擬點擊按紐
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 
         return { index: index + 1, fileName, durationSec };
     }
 
-    // 6. 核心執行
+    // 6. 核心：人手點擊流程控制（按順序逐個點擊，並加入手速延遲）
     async function executeDownload() {
-        document.getElementById("logBox").innerHTML = `
-            <b>📝 下載記錄與耗時：</b><br>
-            ⏳ 7 個檔案下載中，請稍候...
-        `;
+        let logContainer = document.getElementById("logBox");
+        logContainer.innerHTML = `<b>📝 模擬人手下載進行中：</b><br>`;
 
         const totalStartTime = performance.now();
+        const results = [];
 
-        try {
-            const downloadPromises = fileUrls.map((url, index) => {
-                const fileName = generateRandomFileName(index);
-                return fetchAndSaveWithTiming(url, fileName, index);
-            });
+        for (let i = 0; i < fileUrls.length; i++) {
+            const fileName = generateRandomFileName(i);
+            
+            // 更新狀態提示
+            document.getElementById("status").innerText = `👉 正在模擬點擊第 (${i + 1}/7) 個檔案...`;
+            
+            // 下載當前檔案
+            const res = await fetchAndSaveSingle(fileUrls[i], fileName, i);
+            results.push(res);
 
-            const results = await Promise.all(downloadPromises);
+            // 即時更新介面紀錄
+            logContainer.innerHTML += `📄 檔 ${res.index} (${res.fileName})：<span class="highlight">${res.durationSec} 秒</span><br>`;
 
-            const totalEndTime = performance.now();
-            const totalDurationSec = ((totalEndTime - totalStartTime) / 1000).toFixed(2);
-
-            let logHtml = `<b>📝 7 檔真實網絡下載耗時：</b><br>`;
-            results.forEach(res => {
-                logHtml += `📄 檔 ${res.index} (${res.fileName})：<span class="highlight">${res.durationSec} 秒</span><br>`;
-            });
-            logHtml += `⏱️ <b>平行總耗時：<span class="highlight">${totalDurationSec} 秒</span></b>`;
-
-            document.getElementById("logBox").innerHTML = logHtml;
-            document.getElementById("status").innerText = "✅ 7 個檔案已全部下載完成！";
-        } catch (err) {
-            console.error(err);
-            document.getElementById("logBox").innerHTML = `❌ 下載失敗或遭跨域/瀏覽器阻擋。`;
+            // ⚠️ 關鍵：若不是最後一個檔案，模擬「人手連續按按鈕」的反應時間間隔 (例如 250 ~ 400 毫秒)
+            if (i < fileUrls.length - 1) {
+                const humanDelay = Math.floor(Math.random() * 150) + 250; // 隨機 250ms ~ 400ms 間隔
+                await sleep(humanDelay);
+            }
         }
+
+        const totalEndTime = performance.now();
+        const totalDurationSec = ((totalEndTime - totalStartTime) / 1000).toFixed(2);
+
+        logContainer.innerHTML += `<br>⏱️ <b>7 檔人手模擬總耗時：<span class="highlight">${totalDurationSec} 秒</span></b>`;
+        document.getElementById("status").innerText = "✅ 7 個檔案已全部完成人手模擬下載！";
     }
 </script>
 
