@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機定時同步下載器 (持續下載版)</title>
+    <title>多機定時同步下載器 (暫停/結束 控制版)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 20px; background: #f4f7f6; color: #333; }
         .card { background: white; max-width: 540px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -16,7 +16,9 @@
         .btn-arm-bench { background: #6f42c1; }
         .btn-test { background: #6c757d; }
         .btn-bench { background: #17a2b8; }
-        .btn:disabled { background: #cccccc; cursor: not-allowed; }
+        .btn-pause { background: #ffc107; color: #333; width: 48%; display: inline-block; }
+        .btn-stop { background: #dc3545; width: 48%; display: inline-block; }
+        .btn:disabled { background: #cccccc !important; color: #666 !important; cursor: not-allowed; }
         .status { margin-top: 15px; font-size: 15px; font-weight: bold; color: #007bff; }
         .log-box { font-size: 12px; color: #333; text-align: left; background: #eef; padding: 12px; border-radius: 6px; margin-top: 15px; max-height: 350px; overflow-y: auto; line-height: 1.6; }
         .log-entry { padding: 6px 0; border-bottom: 1px dashed #ccc; }
@@ -25,6 +27,7 @@
         .bench-tag { background: #17a2b8; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
         .section-title { font-size: 14px; font-weight: bold; margin-top: 12px; margin-bottom: 5px; color: #555; text-align: left; }
         .setting-row { margin: 8px 0; font-size: 14px; }
+        .ctrl-group { margin-top: 10px; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
@@ -49,6 +52,12 @@
     <button id="startBenchBtn" class="btn btn-arm-bench" onclick="armTimer('bench25m')">🟣 排程下載：獨立測試網路極速 (25MB)</button>
 
     <div id="status" class="status">狀態：等待設定時間...</div>
+
+    <!-- 🎮 持續下載 控制按鈕區 -->
+    <div class="ctrl-group">
+        <button id="pauseBtn" class="btn btn-pause" onclick="togglePause()" disabled>⏸️ 暫停下載</button>
+        <button id="stopBtn" class="btn btn-stop" onclick="stopDownload()" disabled>🛑 結束下載</button>
+    </div>
 
     <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
 
@@ -81,10 +90,14 @@
     let scheduledTaskMode = ""; // '7files' 或 'bench25m'
     let timeOffsetOffsetMs = 0;
 
+    // 🎮 持續下載 控制狀態變數
+    let isDownloadingLoop = false;
+    let isPaused = false;
+    let shouldStop = false;
+
     // 歷史紀錄置頂輔助函式
     function prependLog(htmlContent) {
         const container = document.getElementById("logContainer");
-        // 若只有預設文字則清空
         if (container.innerText.includes("(等待啟動...)")) {
             container.innerHTML = "";
         }
@@ -304,20 +317,67 @@
         document.getElementById("startBenchBtn").disabled = false;
     }
 
-    // 7個檔案持續時間下載 (極短間隔模式)
+    // 🎮 暫停與繼續切換
+    function togglePause() {
+        if (!isDownloadingLoop) return;
+        isPaused = !isPaused;
+        const pauseBtn = document.getElementById("pauseBtn");
+        
+        if (isPaused) {
+            pauseBtn.innerText = "▶️ 繼續下載";
+            pauseBtn.style.backgroundColor = "#28a745";
+            pauseBtn.style.color = "#fff";
+            document.getElementById("status").innerText = "⏸️ 下載已暫停...";
+            document.getElementById("status").style.color = "#ffc107";
+        } else {
+            pauseBtn.innerText = "⏸️ 暫停下載";
+            pauseBtn.style.backgroundColor = "#ffc107";
+            pauseBtn.style.color = "#333";
+            document.getElementById("status").innerText = "👉 正在執行持續下載中...";
+            document.getElementById("status").style.color = "#007bff";
+        }
+    }
+
+    // 🎮 手動強行結束下載
+    function stopDownload() {
+        if (!isDownloadingLoop) return;
+        shouldStop = true;
+        isPaused = false; // 若在暫停狀態，解除暫停以便退出迴圈
+    }
+
+    // 7個檔案持續時間下載 (支援暫停/結束控制)
     async function executeDownload7Loop() {
         const durationSec = parseInt(document.getElementById("durationInput").value) || 10;
-        const endTimeStamp = Date.now() + (durationSec * 1000);
         const startTimeStr = new Date().toLocaleTimeString();
 
+        // 重置控制狀態
+        isDownloadingLoop = true;
+        isPaused = false;
+        shouldStop = false;
+
+        document.getElementById("pauseBtn").disabled = false;
+        document.getElementById("stopBtn").disabled = false;
+        document.getElementById("start7Btn").disabled = true;
+        document.getElementById("startBenchBtn").disabled = true;
+
         document.getElementById("status").innerText = `👉 正在執行 ${durationSec} 秒持續下載中...`;
+        document.getElementById("status").style.color = "#007bff";
 
         let downloadedCount = 0;
         let totalBytes = 0;
         let fileIndex = 0;
-        const loopStartTime = performance.now();
+        
+        let accumulatedActiveTimeMs = 0; // 記錄實際下載耗時 (扣除暫停時間)
+        let segmentStartMs = performance.now();
 
-        while (Date.now() < endTimeStamp) {
+        while (accumulatedActiveTimeMs < (durationSec * 1000) && !shouldStop) {
+            // 處理暫停邏輯
+            if (isPaused) {
+                await sleep(200);
+                segmentStartMs = performance.now(); // 重置段落開始時間
+                continue;
+            }
+
             const currentUrl = fileUrls[fileIndex % fileUrls.length];
             const fileName = generateRandomFileName("file", (fileIndex % 7) + 1) + ".ai";
             
@@ -329,25 +389,39 @@
             downloadedCount++;
             fileIndex++;
 
-            // 短間隔 (30ms - 60ms 隨機極微微延遲)
+            // 累加實際活動時間
+            const now = performance.now();
+            accumulatedActiveTimeMs += (now - segmentStartMs);
+            segmentStartMs = now;
+
+            // 短間隔 (30ms - 60ms 隨機微延遲)
             const shortDelay = Math.floor(Math.random() * 30) + 30;
             await sleep(shortDelay);
         }
 
-        const loopEndTime = performance.now();
-        const actualDurationSec = (loopEndTime - loopStartTime) / 1000;
+        const actualDurationSec = accumulatedActiveTimeMs / 1000;
         const totalSizeFormatted = formatBytes(totalBytes);
         const avgMbps = actualDurationSec > 0 ? ((totalBytes * 8) / (1000000 * actualDurationSec)).toFixed(2) : "0.00";
 
+        const statusTag = shouldStop ? "🛑 手動結束" : "✅ 正常完成";
+
         prependLog(`
-            <b>🔄 7檔案持續下載結果 [啟動時間 ${startTimeStr}]</b><br>
-            ⏱️ 設定持續時間：${durationSec} 秒 (實際耗時 ${actualDurationSec.toFixed(2)} 秒)<br>
+            <b>🔄 7檔案持續下載 [${statusTag}] [${startTimeStr}]</b><br>
+            ⏱️ 實際下載時間：${actualDurationSec.toFixed(2)} 秒 (預設 ${durationSec} 秒)<br>
             📥 成功下載次數：<b>${downloadedCount} 次</b><br>
             📊 總數據流量：<b>${totalSizeFormatted}</b><br>
             🚀 <b>平均下載速率：<span class="speed">${avgMbps} Mbps</span></b>
         `);
 
-        document.getElementById("status").innerText = `✅ ${durationSec} 秒持續下載任務完成！`;
+        document.getElementById("status").innerText = shouldStop ? "🛑 下載任務已被使用者終止！" : `✅ ${durationSec} 秒持續下載任務完成！`;
+        
+        // 重置按鈕狀態
+        isDownloadingLoop = false;
+        document.getElementById("pauseBtn").disabled = true;
+        document.getElementById("stopBtn").disabled = true;
+        document.getElementById("pauseBtn").innerText = "⏸️ 暫停下載";
+        document.getElementById("pauseBtn").style.backgroundColor = "#ffc107";
+        document.getElementById("pauseBtn").style.color = "#333";
         
         document.getElementById("start7Btn").disabled = false;
         document.getElementById("startBenchBtn").disabled = false;
