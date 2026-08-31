@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>流量模擬測試工具</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #status { margin-bottom: 10px; font-weight: bold; }
+        iframe { width: 100%; height: 600px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+    <h2>網頁流量模擬器 (10分鐘自動停止)</h2>
+    <p id="status">狀態：等待開始...</p>
+    <button onclick="startSimulation()">開始模擬</button>
+    <button onclick="stopSimulation()">停止模擬</button>
+
+    <br><br>
+    <iframe id="targetFrame" src="about:blank"></iframe>
+
+    <script>
+        // 設定目標網址
+        const targetUrl = "https://example.com"; // 請替換為您的目標網址
+        
+        let isRunning = false;
+        let timer = null;
+        let stopTimer = null;
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function loadPage() {
+            if (!isRunning) return;
+
+            const frame = document.getElementById("targetFrame");
+            // 加入隨機參數防止快取
+            const cacheBuster = "?t=" + new Date().getTime();
+            frame.src = targetUrl + cacheBuster;
+
+            const status = document.getElementById("status");
+            status.innerText = `狀態：已刷新頁面 (${new Date().toLocaleTimeString()})`;
+
+            // 模擬真人停留時間：隨機 5 秒至 15 秒刷新一次
+            const nextInterval = getRandomInt(5000, 15000);
+            timer = setTimeout(loadPage, nextInterval);
+        }
+
+        function startSimulation() {
+            if (isRunning) return;
+            isRunning = true;
+            document.getElementById("status").innerText = "狀態：模擬運行中...";
+            
+            // 開始加載
+            loadPage();
+
+            // 設定 10 分鐘（600,000 毫秒）後自動停止
+            stopTimer = setTimeout(() => {
+                stopSimulation();
+                document.getElementById("status").innerText = "狀態：10 分鐘已過，自動停止。";
+            }, 10 * 60 * 1000);
+        }
+
+        function stopSimulation() {
+            isRunning = false;
+            clearTimeout(timer);
+            clearTimeout(stopTimer);
+            document.getElementById("status").innerText = "狀態：已手動停止";
+        }
+    </script>
+</body>
+</html>
