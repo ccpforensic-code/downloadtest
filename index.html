@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機定時同步下載器 (模擬人手點擊版)</title>
+    <title>多機定時同步下載器 (極速數據分析版)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 20px; background: #f4f7f6; color: #333; }
-        .card { background: white; max-width: 450px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .card { background: white; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .clock { font-size: 32px; font-weight: bold; margin: 5px 0; color: #007bff; }
         .time-sync-info { font-size: 12px; color: #28a745; margin-bottom: 10px; font-weight: bold; }
         input[type="time"] { font-size: 20px; padding: 6px; margin: 10px 0; }
@@ -15,8 +15,9 @@
         .btn-arm { background: #28a745; }
         .btn:disabled { background: #cccccc; }
         .status { margin-top: 15px; font-size: 15px; font-weight: bold; color: #007bff; }
-        .log-box { font-size: 12px; color: #333; text-align: left; background: #eef; padding: 12px; border-radius: 6px; margin-top: 15px; max-height: 220px; overflow-y: auto; line-height: 1.6; }
+        .log-box { font-size: 12px; color: #333; text-align: left; background: #eef; padding: 12px; border-radius: 6px; margin-top: 15px; max-height: 260px; overflow-y: auto; line-height: 1.6; }
         .highlight { color: #d9534f; font-weight: bold; }
+        .speed { color: #007bff; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -37,7 +38,7 @@
     <button class="btn btn-test" onclick="executeDownload()">（可選）測試模擬人手點擊下載</button>
 
     <div class="log-box" id="logBox">
-        <b>📝 下載記錄與耗時：</b><br>
+        <b>📝 下載記錄與速率分析：</b><br>
         (等待啟動...)
     </div>
 </div>
@@ -147,7 +148,15 @@
         return `file${index + 1}_${dateStr}_${randomStr}.ai`;
     }
 
-    // 輔助工具：模擬點擊停頓延遲 (毫秒)
+    // 輔助：格式化檔案大小
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     // 3. 設定排程時間
@@ -169,7 +178,7 @@
         targetTimeString = "";
     }
 
-    // 5. 單檔抓取與記錄
+    // 5. 單檔抓取、計算大小與速率
     async function fetchAndSaveSingle(fileUrl, fileName, index) {
         const startTime = performance.now();
         
@@ -179,53 +188,72 @@
         const blob = await response.blob();
         
         const endTime = performance.now();
-        const durationSec = ((endTime - startTime) / 1000).toFixed(2);
+        const durationSec = (endTime - startTime) / 1000;
+        
+        // 取得檔案 Bytes 大小
+        const bytes = blob.size;
+        const sizeFormatted = formatBytes(bytes);
 
-        // 建立 <a> 標籤模擬人手點擊下載動作
+        // 計算速率 (Mbps): (Bytes * 8 bit) / 1,000,000 / 秒數
+        const mbps = durationSec > 0 ? ((bytes * 8) / (1000000 * durationSec)).toFixed(2) : "0.00";
+
+        // 觸發瀏覽器下載
         const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = blobUrl;
         a.download = fileName;
         document.body.appendChild(a);
-        a.click(); // 👈 模擬點擊按紐
+        a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 
-        return { index: index + 1, fileName, durationSec };
+        return {
+            index: index + 1,
+            fileName,
+            bytes,
+            sizeFormatted,
+            durationSec: durationSec.toFixed(2),
+            mbps
+        };
     }
 
-    // 6. 核心：人手點擊流程控制（按順序逐個點擊，並加入手速延遲）
+    // 6. 核心：人手點擊流程控制
     async function executeDownload() {
         let logContainer = document.getElementById("logBox");
-        logContainer.innerHTML = `<b>📝 模擬人手下載進行中：</b><br>`;
+        logContainer.innerHTML = `<b>📝 下載記錄與速率分析：</b><br>`;
 
         const totalStartTime = performance.now();
         const results = [];
+        let totalBytes = 0;
 
         for (let i = 0; i < fileUrls.length; i++) {
             const fileName = generateRandomFileName(i);
             
-            // 更新狀態提示
             document.getElementById("status").innerText = `👉 正在模擬點擊第 (${i + 1}/7) 個檔案...`;
             
-            // 下載當前檔案
             const res = await fetchAndSaveSingle(fileUrls[i], fileName, i);
             results.push(res);
+            totalBytes += res.bytes;
 
-            // 即時更新介面紀錄
-            logContainer.innerHTML += `📄 檔 ${res.index} (${res.fileName})：<span class="highlight">${res.durationSec} 秒</span><br>`;
+            // 即時更新介面紀錄 (顯示：檔名 | 大小 | 耗時 | 速率)
+            logContainer.innerHTML += `📄 檔 ${res.index}：<b>${res.sizeFormatted}</b> | 耗時: <span class="highlight">${res.durationSec}s</span> | 速率: <span class="speed">${res.mbps} Mbps</span><br>`;
 
-            // ⚠️ 關鍵：若不是最後一個檔案，模擬「人手連續按按鈕」的反應時間間隔 (例如 250 ~ 400 毫秒)
             if (i < fileUrls.length - 1) {
-                const humanDelay = Math.floor(Math.random() * 150) + 250; // 隨機 250ms ~ 400ms 間隔
+                const humanDelay = Math.floor(Math.random() * 150) + 250;
                 await sleep(humanDelay);
             }
         }
 
         const totalEndTime = performance.now();
-        const totalDurationSec = ((totalEndTime - totalStartTime) / 1000).toFixed(2);
+        const totalDurationSec = (totalEndTime - totalStartTime) / 1000;
+        const totalSizeFormatted = formatBytes(totalBytes);
+        const avgMbps = totalDurationSec > 0 ? ((totalBytes * 8) / (1000000 * totalDurationSec)).toFixed(2) : "0.00";
 
-        logContainer.innerHTML += `<br>⏱️ <b>7 檔人手模擬總耗時：<span class="highlight">${totalDurationSec} 秒</span></b>`;
+        logContainer.innerHTML += `<hr style="margin: 8px 0; border-top: 1px dashed #ccc;">`;
+        logContainer.innerHTML += `📊 <b>總傳輸數據量：</b> ${totalSizeFormatted}<br>`;
+        logContainer.innerHTML += `⏱️ <b>7 檔人手模擬總耗時：</b> <span class="highlight">${totalDurationSec.toFixed(2)} 秒</span><br>`;
+        logContainer.innerHTML += `🚀 <b>全程平均網路速率：</b> <span class="speed">${avgMbps} Mbps</span>`;
+
         document.getElementById("status").innerText = "✅ 7 個檔案已全部完成人手模擬下載！";
     }
 </script>
