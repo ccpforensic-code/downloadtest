@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機定時同步下載器 (含耗時統計)</title>
+    <title>多機定時同步下載器 (7檔平行下載版)</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 25px; background: #f4f7f6; color: #333; }
-        .card { background: white; max-width: 400px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 20px; background: #f4f7f6; color: #333; }
+        .card { background: white; max-width: 450px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .clock { font-size: 32px; font-weight: bold; margin: 10px 0; color: #007bff; }
         input[type="time"] { font-size: 20px; padding: 6px; margin: 10px 0; }
         .btn { font-size: 16px; padding: 10px 20px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin: 5px 0; width: 100%; }
@@ -14,7 +14,7 @@
         .btn-arm { background: #28a745; }
         .btn:disabled { background: #cccccc; }
         .status { margin-top: 15px; font-size: 15px; font-weight: bold; color: #007bff; }
-        .log-box { font-size: 13px; color: #333; text-align: left; background: #eef; padding: 12px; border-radius: 6px; margin-top: 15px; max-height: 180px; overflow-y: auto; line-height: 1.5; }
+        .log-box { font-size: 12px; color: #333; text-align: left; background: #eef; padding: 12px; border-radius: 6px; margin-top: 15px; max-height: 220px; overflow-y: auto; line-height: 1.6; }
         .highlight { color: #d9534f; font-weight: bold; }
     </style>
 </head>
@@ -32,7 +32,7 @@
 
     <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
 
-    <button class="btn btn-test" onclick="executeDownload()">（可選）測試下載與測速</button>
+    <button class="btn btn-test" onclick="executeDownload()">（可選）測試 7 檔平行下載</button>
 
     <div class="log-box" id="logBox">
         <b>📝 下載記錄與耗時：</b><br>
@@ -41,8 +41,16 @@
 </div>
 
 <script>
-    const url1 = "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/241e3b3db2cc47e0bb056f054e4532dc.pdf";
-    const url2 = "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/1915ccb2f13946f9acffc74f82c529c2.pdf";
+    // 7 個 .ai 檔案連結陣列
+    const fileUrls = [
+        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/25471d1b885b40259ecb57778db9272e.ai",
+        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/7d91438e5a634cef9433396b66174af8.ai",
+        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/8261c18c11e5423aa251ffde02edec2e.ai",
+        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/d936be7a88d549f3bfa7388c09f3868b.ai",
+        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/409adf45fd48497abd4609d995dec523.ai",
+        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/661b4023226143729514b23c34f5b2b0.ai",
+        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/fd0dba4d73ae4225bce3d445ee6dd1f6.ai"
+    ];
 
     let targetTimeString = "";
 
@@ -61,8 +69,8 @@
     }
     setInterval(updateClock, 1000);
 
-    // 2. 隨機檔名生成器
-    function generateRandomFileName(prefix = "file") {
+    // 2. 隨機檔名生成器 (擴充支援 .ai 副檔名)
+    function generateRandomFileName(index) {
         const now = new Date();
         const dateStr = now.getFullYear() +
             String(now.getMonth() + 1).padStart(2, '0') +
@@ -72,7 +80,7 @@
             String(now.getSeconds()).padStart(2, '0');
         
         const randomStr = Math.random().toString(36).substring(2, 6);
-        return `${prefix}_${dateStr}_${randomStr}.pdf`;
+        return `file${index + 1}_${dateStr}_${randomStr}.ai`;
     }
 
     // 3. 設定排程時間
@@ -81,30 +89,30 @@
         if (!inputVal) return alert("請先選擇時間！");
         targetTimeString = inputVal.length === 5 ? `${inputVal}:00` : inputVal;
 
-        document.getElementById("status").innerText = `已排程！將在 ${targetTimeString} 自動下載`;
+        document.getElementById("status").innerText = `已排程！將在 ${targetTimeString} 自動平行下載 7 個檔案`;
         document.getElementById("status").style.color = "#28a745";
         document.getElementById("startBtn").disabled = true;
     }
 
-    // 4. 到點觸發
+    // 4. 時間到達時觸發
     function triggerDownload() {
-        document.getElementById("status").innerText = "🚀 時間到！發起下載並計算耗時...";
+        document.getElementById("status").innerText = "🚀 時間到！發起 7 檔平行下載中...";
         document.getElementById("status").style.color = "#007bff";
         executeDownload();
         targetTimeString = "";
     }
 
-    // 5. 獨立發起單檔下載並精準計算該檔耗時
-    async function fetchAndSaveWithTiming(fileUrl, fileName) {
-        const startTime = performance.now(); // 紀錄開始毫秒數
+    // 5. 單檔下載與獨立計時器
+    async function fetchAndSaveWithTiming(fileUrl, fileName, index) {
+        const startTime = performance.now();
         
         const response = await fetch(fileUrl);
         const blob = await response.blob();
         
-        const endTime = performance.now(); // 紀錄完成毫秒數
-        const durationSec = ((endTime - startTime) / 1000).toFixed(2); // 計算耗時秒數（保留兩位小數）
+        const endTime = performance.now();
+        const durationSec = ((endTime - startTime) / 1000).toFixed(2);
 
-        // 儲存檔案到手機
+        // 觸發瀏覽器下載
         const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = blobUrl;
@@ -114,43 +122,43 @@
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 
-        return { fileName, durationSec, size: blob.size };
+        return { index: index + 1, fileName, durationSec };
     }
 
-    // 6. 核心執行：平行發起下載並顯示總耗時
+    // 6. 核心執行：7 個檔案同時發起 Promise.all 下載
     async function executeDownload() {
-        const fileName1 = generateRandomFileName("pdfA");
-        const fileName2 = generateRandomFileName("pdfB");
-
         document.getElementById("logBox").innerHTML = `
             <b>📝 下載記錄與耗時：</b><br>
-            ⏳ 下載中，請稍候...
+            ⏳ 7 個檔案下載中，請稍候...
         `;
 
         const totalStartTime = performance.now();
 
         try {
-            // 同時平行發起兩個下載任務
-            const [res1, res2] = await Promise.all([
-                fetchAndSaveWithTiming(url1, fileName1),
-                fetchAndSaveWithTiming(url2, fileName2)
-            ]);
+            // 動態建立 7 個 Promise 下載任務
+            const downloadPromises = fileUrls.map((url, index) => {
+                const fileName = generateRandomFileName(index);
+                return fetchAndSaveWithTiming(url, fileName, index);
+            });
+
+            // 7 個檔案同時平行下載
+            const results = await Promise.all(downloadPromises);
 
             const totalEndTime = performance.now();
             const totalDurationSec = ((totalEndTime - totalStartTime) / 1000).toFixed(2);
 
-            // 更新介面顯示耗時
-            document.getElementById("logBox").innerHTML = `
-                <b>📝 下載成功耗時統計：</b><br>
-                📄 檔1 (${res1.fileName})：<span class="highlight">${res1.durationSec} 秒</span><br>
-                📄 檔2 (${res2.fileName})：<span class="highlight">${res2.durationSec} 秒</span><br>
-                ⏱️ <b>平行總耗時：<span class="highlight">${totalDurationSec} 秒</span></b>
-            `;
+            // 組合 7 個檔案的結果記錄
+            let logHtml = `<b>📝 7 檔下載成功耗時統計：</b><br>`;
+            results.forEach(res => {
+                logHtml += `📄 檔 ${res.index} (${res.fileName})：<span class="highlight">${res.durationSec} 秒</span><br>`;
+            });
+            logHtml += `⏱️ <b>平行總耗時：<span class="highlight">${totalDurationSec} 秒</span></b>`;
 
-            document.getElementById("status").innerText = "✅ 下載完成！";
+            document.getElementById("logBox").innerHTML = logHtml;
+            document.getElementById("status").innerText = "✅ 7 個檔案已全部下載完成！";
         } catch (err) {
             console.error(err);
-            document.getElementById("logBox").innerHTML = `❌ 下載失敗或遭跨域阻擋。`;
+            document.getElementById("logBox").innerHTML = `❌ 下載失敗或遭跨域/瀏覽器阻擋。`;
         }
     }
 </script>
