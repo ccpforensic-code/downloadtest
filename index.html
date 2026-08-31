@@ -1,42 +1,9 @@
-這是因為瀏覽器啟用了 **快取（Cache）機制**。
-
----
-
-### 1. 為什麼第二次速度會快得不正常？
-
-當你第一次下載時，瀏覽器是真的透過網絡從 Cvent 伺服器下載檔案（例如花了 1.5 秒）。
-
-但到了第二次時，瀏覽發現這 7 個 URL 之前已經下載過，且伺服器沒有禁止快取，於是瀏覽器就**直接從手機/電腦的記憶體（Memory Cache）或硬碟快取（Disk Cache）中讀取檔案**，完全沒有經過真正的網絡傳輸！
-
-* **第一次下載**：手機 ➔ 跨國網絡 ➔ Cvent 伺服器（真實速度，如 1.5 秒）
-* **第二次下載**：手機 ➔ 本機記憶體快取（假速度，如 0.05 秒）
-
-這會導致你測試出來的第二次耗時數據**無法反映真正的網絡搶下載速度**。
-
----
-
-### 2. 如何解決？（強制每次都從網絡重新下載）
-
-要在程式碼中繞過快取，有兩種最有效的方法：
-
-1. **在 URL 後面加上隨機時間戳記（Cache Bypassing / Cache Busting）**：
-在 URL 後面補上 `?t=時間戳`（例如 `...?files/xxx.ai?t=1725100000`），讓瀏覽器以為這是一個「全新的檔案」，從而強制每一次都向伺服器重新抓取。
-2. **在 `fetch()` 請求中加入 `cache: 'no-store'**`：
-指示瀏覽器絕對不要使用快取，也不要儲存快取。
-
----
-
-### 修正後的完整 `index.html` 程式碼（含防快取機制）
-
-請將 GitHub 上的 `index.html` 替換為以下程式碼，這樣無論執行多少次，**每一次都是 100% 的真實網絡下載速度**：
-
-```html
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機定時同步下載器 (防快取/真速版)</title>
+    <title>多機定時同步下載器 (高可用對時版)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 20px; background: #f4f7f6; color: #333; }
         .card { background: white; max-width: 450px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -89,26 +56,69 @@
     let targetTimeString = "";
     let timeOffsetOffsetMs = 0;
 
-    // 🌐 與香港時間 (HKT) 同步校正
+    // 🌐 多重來源獲取網路精準時間
     async function syncTimeWithHKT() {
         const syncElem = document.getElementById("syncStatus");
-        try {
-            const startReq = performance.now();
-            const response = await fetch("https://worldtimeapi.org/api/timezone/Asia/Hong_Kong", { cache: "no-store" });
-            const data = await response.json();
-            const endReq = performance.now();
-            
-            const networkLatency = (endReq - startReq) / 2;
-            const serverTime = new Date(data.datetime).getTime() + networkLatency;
-            const localTime = Date.now();
+        
+        // 備用對時 API 清單
+        const timeEndpoints = [
+            "https://timeapi.io/api/time/current/zone?timeZone=Asia/Hong_Kong",
+            "https://worldtimeapi.org/api/timezone/Asia/Hong_Kong"
+        ];
 
-            timeOffsetOffsetMs = serverTime - localTime;
-            
+        let success = false;
+
+        // 方法 A: 嘗試公開時間 API
+        for (const endpoint of timeEndpoints) {
+            try {
+                const startReq = performance.now();
+                const response = await fetch(endpoint, { cache: "no-store" });
+                if (!response.ok) continue;
+                
+                const data = await response.json();
+                const endReq = performance.now();
+                const networkLatency = (endReq - startReq) / 2;
+
+                let serverMs = 0;
+                if (data.dateTime) serverMs = new Date(data.dateTime).getTime();
+                else if (data.datetime) serverMs = new Date(data.datetime).getTime();
+
+                if (serverMs > 0) {
+                    timeOffsetOffsetMs = (serverMs + networkLatency) - Date.now();
+                    success = true;
+                    break;
+                }
+            } catch (e) {
+                console.warn("備用對時來源嘗試失敗：", endpoint);
+            }
+        }
+
+        // 方法 B: 若 API 皆失敗，利用 HEAD 請求讀取 HTTP Header Date 進行對時
+        if (!success) {
+            try {
+                const startReq = performance.now();
+                const response = await fetch("https://www.cloudflare.com/cdn-cgi/trace", { cache: "no-store" });
+                const text = await response.text();
+                const endReq = performance.now();
+                
+                // 解析 Cloudflare 伺服器時間 (ts)
+                const tsMatch = text.match(/ts=(.+)/);
+                if (tsMatch && tsMatch[1]) {
+                    const serverMs = parseFloat(tsMatch[1]) * 1000;
+                    const networkLatency = (endReq - startReq) / 2;
+                    timeOffsetOffsetMs = (serverMs + networkLatency) - Date.now();
+                    success = true;
+                }
+            } catch (e) {
+                console.error("HTTP Header 對時失敗", e);
+            }
+        }
+
+        if (success) {
             const offsetSec = (timeOffsetOffsetMs / 1000).toFixed(2);
             syncElem.innerText = `✅ 已對齊香港標準時間 (機時誤差: ${offsetSec > 0 ? '+' : ''}${offsetSec}秒)`;
             syncElem.style.color = "#28a745";
-        } catch (err) {
-            console.error("時間同步失敗：", err);
+        } else {
             syncElem.innerText = "⚠️ 網路對時失敗，目前使用裝置本機時間";
             syncElem.style.color = "#dc3545";
         }
@@ -166,11 +176,10 @@
         targetTimeString = "";
     }
 
-    // 5. 核心修正：強制破除快取 (Cache Busting)
+    // 5. 核心：防快取＋精準計時
     async function fetchAndSaveWithTiming(fileUrl, fileName, index) {
         const startTime = performance.now();
         
-        // 🚀 關鍵改動：在 URL 後面加上隨機時間戳，強制瀏覽器不使用快取，每次都真實從網絡發起請求
         const antiCacheUrl = `${fileUrl}?nocache=${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         
         const response = await fetch(antiCacheUrl, { cache: "no-store" });
@@ -228,5 +237,3 @@
 
 </body>
 </html>
-
-```
