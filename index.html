@@ -3,23 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機定時同步下載器 (Cloudflare 測速修正版)</title>
+    <title>多機定時同步下載器 (持續下載版)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 20px; background: #f4f7f6; color: #333; }
-        .card { background: white; max-width: 520px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .card { background: white; max-width: 540px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .clock { font-size: 32px; font-weight: bold; margin: 5px 0; color: #007bff; }
         .time-sync-info { font-size: 12px; color: #28a745; margin-bottom: 10px; font-weight: bold; }
-        input[type="time"] { font-size: 20px; padding: 6px; margin: 10px 0; }
-        .btn { font-size: 16px; padding: 10px 20px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin: 5px 0; width: 100%; }
+        input[type="time"], input[type="number"] { font-size: 18px; padding: 6px; margin: 5px 0; text-align: center; }
+        input[type="number"] { width: 90px; }
+        .btn { font-size: 15px; padding: 10px 15px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin: 5px 0; width: 100%; transition: 0.2s; }
+        .btn-arm-7 { background: #28a745; }
+        .btn-arm-bench { background: #6f42c1; }
         .btn-test { background: #6c757d; }
-        .btn-arm { background: #28a745; }
         .btn-bench { background: #17a2b8; }
-        .btn:disabled { background: #cccccc; }
+        .btn:disabled { background: #cccccc; cursor: not-allowed; }
         .status { margin-top: 15px; font-size: 15px; font-weight: bold; color: #007bff; }
-        .log-box { font-size: 12px; color: #333; text-align: left; background: #eef; padding: 12px; border-radius: 6px; margin-top: 15px; max-height: 280px; overflow-y: auto; line-height: 1.6; }
+        .log-box { font-size: 12px; color: #333; text-align: left; background: #eef; padding: 12px; border-radius: 6px; margin-top: 15px; max-height: 350px; overflow-y: auto; line-height: 1.6; }
+        .log-entry { padding: 6px 0; border-bottom: 1px dashed #ccc; }
         .highlight { color: #d9534f; font-weight: bold; }
         .speed { color: #007bff; font-weight: bold; }
         .bench-tag { background: #17a2b8; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .section-title { font-size: 14px; font-weight: bold; margin-top: 12px; margin-bottom: 5px; color: #555; text-align: left; }
+        .setting-row { margin: 8px 0; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -29,25 +34,37 @@
     <div id="currentTime" class="clock">00:00:00</div>
     <div id="syncStatus" class="time-sync-info">⏳ 正在與香港標準時間對時...</div>
 
-    <label for="targetTime"><b>設定預計下載時間 (HKT)：</b></label><br>
-    <input type="time" id="targetTime" step="1"><br>
-    <button id="startBtn" class="btn btn-arm" onclick="armTimer()">確認啟動排程</button>
+    <div class="setting-row">
+        <label for="targetTime"><b>預計下載時間 (HKT)：</b></label><br>
+        <input type="time" id="targetTime" step="1">
+    </div>
+
+    <div class="setting-row">
+        <label for="durationInput"><b>7個檔案持續下載時間 (秒)：</b></label><br>
+        <input type="number" id="durationInput" value="10" min="1" max="300"> 秒
+    </div>
+
+    <div class="section-title">📅 排程任務選擇：</div>
+    <button id="start7Btn" class="btn btn-arm-7" onclick="armTimer('7files')">🟢 排程下載：7 個 .ai 檔案 (持續模式)</button>
+    <button id="startBenchBtn" class="btn btn-arm-bench" onclick="armTimer('bench25m')">🟣 排程下載：獨立測試網路極速 (25MB)</button>
 
     <div id="status" class="status">狀態：等待設定時間...</div>
 
     <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
 
-    <button class="btn btn-bench" onclick="runBenchmark()">⚡ (Optional) 獨立測試網路極速 (25MB)</button>
-    <button class="btn btn-test" onclick="executeDownload()">（可選）測試模擬人手下載 7 個檔案</button>
+    <div class="section-title">🧪 獨立手動測試區：</div>
+    <button class="btn btn-bench" onclick="runBenchmark()">⚡ 獨立測試網路極速 (25MB)</button>
+    <button class="btn btn-test" onclick="executeDownload7Loop()">（可選）手動觸發 7 檔案持續下載</button>
 
-    <div class="log-box" id="logBox">
-        <b>📝 下載記錄與速率分析：</b><br>
-        (等待啟動...)
+    <div class="log-box">
+        <b>📝 下載記錄與速率分析 (最新在最上)：</b>
+        <div id="logContainer">
+            <div style="color: #888;">(等待啟動...)</div>
+        </div>
     </div>
 </div>
 
 <script>
-    // 使用 Cloudflare 官方開放 CORS 的 25MB Speedtest 測試端點
     const benchmarkInstallerUrl = "https://speed.cloudflare.com/__down?bytes=25000000";
 
     const fileUrls = [
@@ -61,7 +78,21 @@
     ];
 
     let targetTimeString = "";
+    let scheduledTaskMode = ""; // '7files' 或 'bench25m'
     let timeOffsetOffsetMs = 0;
+
+    // 歷史紀錄置頂輔助函式
+    function prependLog(htmlContent) {
+        const container = document.getElementById("logContainer");
+        // 若只有預設文字則清空
+        if (container.innerText.includes("(等待啟動...)")) {
+            container.innerHTML = "";
+        }
+        const newDiv = document.createElement("div");
+        newDiv.className = "log-entry";
+        newDiv.innerHTML = htmlContent;
+        container.insertBefore(newDiv, container.firstChild);
+    }
 
     // 🌐 香港標準時間校正
     async function syncTimeWithHKT() {
@@ -121,7 +152,6 @@
         }
     }
 
-    // 1. 每秒時鐘與排程比對
     function updateClock() {
         const correctedNow = new Date(Date.now() + timeOffsetOffsetMs);
         
@@ -140,8 +170,7 @@
     syncTimeWithHKT();
     setInterval(updateClock, 1000);
 
-    // 2. 隨機檔名生成器
-    function generateRandomFileName(index) {
+    function generateRandomFileName(prefix, index = "") {
         const now = new Date(Date.now() + timeOffsetOffsetMs);
         const dateStr = now.getFullYear() +
             String(now.getMonth() + 1).padStart(2, '0') +
@@ -151,7 +180,7 @@
             String(now.getSeconds()).padStart(2, '0');
         
         const randomStr = Math.random().toString(36).substring(2, 6);
-        return `file${index + 1}_${dateStr}_${randomStr}.ai`;
+        return `${prefix}${index ? index + '_' : ''}${dateStr}_${randomStr}`;
     }
 
     function formatBytes(bytes) {
@@ -164,123 +193,164 @@
 
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // 3. 設定排程時間
-    function armTimer() {
+    function armTimer(mode) {
         const inputVal = document.getElementById("targetTime").value;
         if (!inputVal) return alert("請先選擇時間！");
         targetTimeString = inputVal.length === 5 ? `${inputVal}:00` : inputVal;
+        scheduledTaskMode = mode;
 
-        document.getElementById("status").innerText = `已排程！將在 ${targetTimeString} (HKT) 執行 7 個檔案下載`;
+        const duration = document.getElementById("durationInput").value || 10;
+        const modeText = mode === '7files' ? `【7個檔案持續 ${duration} 秒下載】` : "【獨立測試網路極速 (25MB)】";
+
+        document.getElementById("status").innerText = `已排程！將在 ${targetTimeString} (HKT) 執行 ${modeText}`;
         document.getElementById("status").style.color = "#28a745";
-        document.getElementById("startBtn").disabled = true;
+        
+        document.getElementById("start7Btn").disabled = true;
+        document.getElementById("startBenchBtn").disabled = true;
     }
 
-    // 4. 排程時間到達時觸發（不下載測速檔）
     function triggerDownload() {
-        document.getElementById("status").innerText = "🚀 時間到！開始下載 7 個檔案...";
-        document.getElementById("status").style.color = "#007bff";
-        executeDownload();
+        if (scheduledTaskMode === '7files') {
+            document.getElementById("status").innerText = "🚀 時間到！開始持續下載 7 個檔案...";
+            document.getElementById("status").style.color = "#007bff";
+            executeDownload7Loop();
+        } else if (scheduledTaskMode === 'bench25m') {
+            document.getElementById("status").innerText = "🚀 時間到！開始執行極速 25MB 下載...";
+            document.getElementById("status").style.color = "#6f42c1";
+            runBenchmark();
+        }
         targetTimeString = "";
+        scheduledTaskMode = "";
     }
 
-    // 5. 通用下載與速率計算
     async function fetchAndSaveSingle(fileUrl, fileName, triggerBrowserSave = true) {
         const startTime = performance.now();
-        
-        const antiCacheUrl = `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        
-        const response = await fetch(antiCacheUrl, { cache: "no-store" });
-        if (!response.ok) throw new Error("下載失敗");
-        
-        const blob = await response.blob();
-        
-        const endTime = performance.now();
-        const durationSec = (endTime - startTime) / 1000;
-        
-        const bytes = blob.size;
-        const sizeFormatted = formatBytes(bytes);
-        const mbps = durationSec > 0 ? ((bytes * 8) / (1000000 * durationSec)).toFixed(2) : "0.00";
+        const urlsToTry = [
+            `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            `https://corsproxy.io/?${encodeURIComponent(fileUrl)}`
+        ];
+
+        for (let i = 0; i < urlsToTry.length; i++) {
+            try {
+                const target = urlsToTry[i];
+                const response = await fetch(target, { cache: "no-store" });
+                if (!response.ok) continue;
+                
+                const blob = await response.blob();
+                if (blob.size === 0) continue;
+
+                const endTime = performance.now();
+                const durationSec = (endTime - startTime) / 1000;
+                
+                const bytes = blob.size;
+                const sizeFormatted = formatBytes(bytes);
+                const mbps = durationSec > 0 ? ((bytes * 8) / (1000000 * durationSec)).toFixed(2) : "0.00";
+
+                if (triggerBrowserSave) {
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = blobUrl;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+                }
+
+                return {
+                    success: true,
+                    fileName,
+                    bytes,
+                    sizeFormatted,
+                    durationSec: durationSec.toFixed(2),
+                    mbps
+                };
+            } catch (err) {}
+        }
 
         if (triggerBrowserSave) {
-            const blobUrl = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = blobUrl;
+            a.href = fileUrl;
+            a.target = "_blank";
             a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
         }
 
-        return {
-            fileName,
-            bytes,
-            sizeFormatted,
-            durationSec: durationSec.toFixed(2),
-            mbps
-        };
+        return { success: false, fileName };
     }
 
-    // 6. 手動獨立執行網絡基準極速測試
+    // 獨立測試網路極速 (25MB)
     async function runBenchmark() {
-        let logContainer = document.getElementById("logBox");
-        logContainer.innerHTML = `<b>⚡ 正在測量獨立網絡極速 (Cloudflare CDN 25MB)...</b><br>`;
-        document.getElementById("status").innerText = "⏳ 正在獨立測量網路頻寬上限...";
+        document.getElementById("status").innerText = "⏳ 正在測量網路極速 (25MB)...";
 
-        try {
-            const benchRes = await fetchAndSaveSingle(benchmarkInstallerUrl, "speedtest_25mb.bin", false);
-            
-            logContainer.innerHTML = `
-                <span class="bench-tag">獨立測速結果</span><br>
-                📦 測試檔案大小：<b>${benchRes.sizeFormatted}</b><br>
-                ⏱️ 下載耗時：<span class="highlight">${benchRes.durationSec} 秒</span><br>
-                🚀 <b>當前網路極速上限：<span class="speed">${benchRes.mbps} Mbps</span></b>
-            `;
-            document.getElementById("status").innerText = "✅ 獨立速率測試完成！";
-        } catch (err) {
-            console.error(err);
-            logContainer.innerHTML = `❌ 測試失敗，請檢查網路連線。`;
-            document.getElementById("status").innerText = "⚠️ 測試失敗";
+        const benchRes = await fetchAndSaveSingle(benchmarkInstallerUrl, "speedtest_25mb.bin", true);
+        const timeStr = new Date().toLocaleTimeString();
+
+        if (benchRes.success) {
+            prependLog(`
+                <span class="bench-tag">25MB 極速測試 [${timeStr}]</span><br>
+                📦 檔案大小：<b>${benchRes.sizeFormatted}</b> | 耗時：<span class="highlight">${benchRes.durationSec} 秒</span><br>
+                🚀 <b>極速上限：<span class="speed">${benchRes.mbps} Mbps</span></b>
+            `);
+            document.getElementById("status").innerText = "✅ 25MB 極速測試完成！";
+        } else {
+            prependLog(`❌ [${timeStr}] 25MB 極速測試失敗，已觸發瀏覽器原生存取。`);
+            document.getElementById("status").innerText = "⚠️ 測試完成 (觸發原生下載)";
         }
+        
+        document.getElementById("start7Btn").disabled = false;
+        document.getElementById("startBenchBtn").disabled = false;
     }
 
-    // 7. 核心：僅下載 7 個 .ai 檔案
-    async function executeDownload() {
-        let logContainer = document.getElementById("logBox");
-        logContainer.innerHTML = `<b>📝 下載記錄與速率分析：</b><br>`;
+    // 7個檔案持續時間下載 (極短間隔模式)
+    async function executeDownload7Loop() {
+        const durationSec = parseInt(document.getElementById("durationInput").value) || 10;
+        const endTimeStamp = Date.now() + (durationSec * 1000);
+        const startTimeStr = new Date().toLocaleTimeString();
 
-        const totalStartTime = performance.now();
-        const results = [];
+        document.getElementById("status").innerText = `👉 正在執行 ${durationSec} 秒持續下載中...`;
+
+        let downloadedCount = 0;
         let totalBytes = 0;
+        let fileIndex = 0;
+        const loopStartTime = performance.now();
 
-        for (let i = 0; i < fileUrls.length; i++) {
-            const fileName = generateRandomFileName(i);
+        while (Date.now() < endTimeStamp) {
+            const currentUrl = fileUrls[fileIndex % fileUrls.length];
+            const fileName = generateRandomFileName("file", (fileIndex % 7) + 1) + ".ai";
             
-            document.getElementById("status").innerText = `👉 正在模擬點擊第 (${i + 1}/7) 個檔案...`;
+            const res = await fetchAndSaveSingle(currentUrl, fileName, true);
             
-            const res = await fetchAndSaveSingle(fileUrls[i], fileName, true);
-            results.push(res);
-            totalBytes += res.bytes;
-
-            logContainer.innerHTML += `📄 檔 ${i + 1}：<b>${res.sizeFormatted}</b> | 耗時: <span class="highlight">${res.durationSec}s</span> | 速率: <span class="speed">${res.mbps} Mbps</span><br>`;
-
-            if (i < fileUrls.length - 1) {
-                const humanDelay = Math.floor(Math.random() * 150) + 250;
-                await sleep(humanDelay);
+            if (res.success) {
+                totalBytes += res.bytes;
             }
+            downloadedCount++;
+            fileIndex++;
+
+            // 短間隔 (30ms - 60ms 隨機極微微延遲)
+            const shortDelay = Math.floor(Math.random() * 30) + 30;
+            await sleep(shortDelay);
         }
 
-        const totalEndTime = performance.now();
-        const totalDurationSec = (totalEndTime - totalStartTime) / 1000;
+        const loopEndTime = performance.now();
+        const actualDurationSec = (loopEndTime - loopStartTime) / 1000;
         const totalSizeFormatted = formatBytes(totalBytes);
-        const avgMbps = totalDurationSec > 0 ? ((totalBytes * 8) / (1000000 * totalDurationSec)).toFixed(2) : "0.00";
+        const avgMbps = actualDurationSec > 0 ? ((totalBytes * 8) / (1000000 * actualDurationSec)).toFixed(2) : "0.00";
 
-        logContainer.innerHTML += `<hr style="margin: 8px 0; border-top: 1px dashed #ccc;">`;
-        logContainer.innerHTML += `📊 <b>7 檔總數據量：</b> ${totalSizeFormatted}<br>`;
-        logContainer.innerHTML += `⏱️ <b>7 檔模擬總耗時：</b> <span class="highlight">${totalDurationSec.toFixed(2)} 秒</span><br>`;
-        logContainer.innerHTML += `🚀 <b>7 檔平均下載速率：</b> <span class="speed">${avgMbps} Mbps</span>`;
+        prependLog(`
+            <b>🔄 7檔案持續下載結果 [啟動時間 ${startTimeStr}]</b><br>
+            ⏱️ 設定持續時間：${durationSec} 秒 (實際耗時 ${actualDurationSec.toFixed(2)} 秒)<br>
+            📥 成功下載次數：<b>${downloadedCount} 次</b><br>
+            📊 總數據流量：<b>${totalSizeFormatted}</b><br>
+            🚀 <b>平均下載速率：<span class="speed">${avgMbps} Mbps</span></b>
+        `);
 
-        document.getElementById("status").innerText = "✅ 7 個檔案下載完全成功！";
+        document.getElementById("status").innerText = `✅ ${durationSec} 秒持續下載任務完成！`;
+        
+        document.getElementById("start7Btn").disabled = false;
+        document.getElementById("startBenchBtn").disabled = false;
     }
 </script>
 
