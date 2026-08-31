@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機定時同步下載器 (獨立基準測速版)</title>
+    <title>多機定時同步下載器 (修正 CORS 測速版)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 20px; background: #f4f7f6; color: #333; }
         .card { background: white; max-width: 520px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -47,8 +47,8 @@
 </div>
 
 <script>
-    // 獨立基準測試用離線安裝包 (Google Chrome 官方安裝包 ~110MB)
-    const benchmarkInstallerUrl = "https://dl.google.com/chrome/install/standalonesetup64.exe";
+    // 更改為支援 CORS 的 Microsoft 官方離線安裝包 (~24MB)
+    const benchmarkInstallerUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe";
 
     const fileUrls = [
         "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/25471d1b885b40259ecb57778db9272e.ai",
@@ -190,6 +190,8 @@
         const antiCacheUrl = `${fileUrl}?nocache=${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         
         const response = await fetch(antiCacheUrl, { cache: "no-store" });
+        if (!response.ok) throw new Error("Network response was not ok");
+        
         const blob = await response.blob();
         
         const endTime = performance.now();
@@ -222,27 +224,28 @@
     // 6. 手動【獨立】執行離線安裝包速度測試
     async function runBenchmark() {
         let logContainer = document.getElementById("logBox");
-        logContainer.innerHTML = `<b>⚡ 正在測量獨立網絡速率 (Offline Installer)...</b><br>`;
+        logContainer.innerHTML = `<b>⚡ 正在測量獨立網絡速率 (MS VC++ Installer)...</b><br>`;
         document.getElementById("status").innerText = "⏳ 正在獨立測試離線安裝包速度...";
 
         try {
-            const benchRes = await fetchAndSaveSingle(benchmarkInstallerUrl, "Benchmark_Installer.exe", false);
+            const benchRes = await fetchAndSaveSingle(benchmarkInstallerUrl, "VC_redist.x64.exe", false);
             
             logContainer.innerHTML = `
                 <span class="bench-tag">獨立測速結果</span><br>
-                📦 安裝包大小：<b>${benchRes.sizeFormatted}</b><br>
+                📦 檔名：Microsoft Installer<br>
+                📦 大小：<b>${benchRes.sizeFormatted}</b><br>
                 ⏱️ 下載耗時：<span class="highlight">${benchRes.durationSec} 秒</span><br>
-                🚀 <b>當前網絡最大速率：<span class="speed">${benchRes.mbps} Mbps</span></b>
+                🚀 <b>當前網絡極速：<span class="speed">${benchRes.mbps} Mbps</span></b>
             `;
             document.getElementById("status").innerText = "✅ 獨立速率測試完成！";
         } catch (err) {
             console.error(err);
-            logContainer.innerHTML = `❌ 測試失敗（網絡或 CORS 限制）。`;
+            logContainer.innerHTML = `❌ 測試失敗（網絡連線異常）。`;
             document.getElementById("status").innerText = "⚠️ 測試失敗";
         }
     }
 
-    // 7. 核心：僅下載 7 個 .ai 檔案（排程與測試共用）
+    // 7. 核心：僅下載 7 個 .ai 檔案
     async function executeDownload() {
         let logContainer = document.getElementById("logBox");
         logContainer.innerHTML = `<b>📝 下載記錄與速率分析：</b><br>`;
