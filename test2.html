@@ -8,7 +8,7 @@
         content="width=device-width, initial-scale=1, viewport-fit=cover"
     >
 
-    <title>Cvent 檔案下載速度測試</title>
+    <title>檔案下載速度測試</title>
 
     <style>
         * {
@@ -158,34 +158,32 @@
 
 <body>
 <div class="container">
-    <h1>Cvent 檔案下載速度測試</h1>
+    <h1>檔案下載速度測試</h1>
 
     <p class="description">
-        點擊個別檔案開始下載。每次請求都會加入隨機參數，
+        點擊個別檔案開始下載及測速。每次請求都會加入隨機參數，
         並要求瀏覽器不要使用 HTTP 快取。下載完成後會顯示平均速度，
         並以新檔名儲存。
+        測速紀錄只會先儲存在此瀏覽器，
+        必須按下「上傳紀錄」才會回傳 Server。
     </p>
 
     <div class="toolbar">
-    <button id="download-parallel" type="button">
-        全部同時下載
-    </button>
+        <button
+            id="upload-records"
+            class="secondary-button"
+            type="button"
+        >
+            上傳紀錄
+        </button>
 
-    <button id="download-sequential" type="button">
-        逐一全部下載
-    </button>
-
-    <button id="upload-records" class="secondary-button" type="button">
-        重新回傳未送紀錄
-    </button>
-
-    <button id="reset-results" class="secondary-button" type="button">
-        清除畫面結果
-    </button>
-    </div>
-
-    <div id="batch-status" class="status">
-        尚未開始批次下載
+        <button
+            id="reset-results"
+            class="secondary-button"
+            type="button"
+        >
+            清除畫面結果
+        </button>
     </div>
 
     <div id="upload-status" class="status">
@@ -195,64 +193,43 @@
     <div id="file-list"></div>
 
     <div class="warning">
-        此網頁使用 JavaScript Fetch 讀取外部 Cvent 網址。
-        如果 Cvent 伺服器不允許跨來源存取（CORS），瀏覽器會阻止測速，
-        並顯示「Failed to fetch」或 CORS 錯誤。
+        此網頁使用 JavaScript Fetch 讀取外部下載網址。
+        如果外部伺服器不允許跨來源存取（CORS），
+        瀏覽器可能會阻止測速，並顯示
+        「Failed to fetch」或 CORS 錯誤。
     </div>
 </div>
 
 <script>
 const files = [
     {
-        name: "Cvent_File1.ai",
-        url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/25471d1b885b40259ecb57778db9272e.ai"
-    },
-    {
-        name: "Cvent_File2.ai",
-        url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/7d91438e5a634cef9433396b66174af8.ai"
-    },
-    {
-        name: "Cvent_File3.ai",
-        url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/8261c18c11e5423aa251ffde02edec2e.ai"
-    },
-    {
-        name: "Cvent_File4.ai",
-        url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/d936be7a88d549f3bfa7388c09f3868b.ai"
-    },
-    {
-        name: "Cvent_File5.ai",
-        url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/409adf45fd48497abd4609d995dec523.ai"
-    },
-    {
-        name: "Cvent_File6.ai",
-        url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/661b4023226143729514b23c34f5b2b0.ai"
-    },
-    {
-        name: "Cvent_File7.ai",
-        url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/fd0dba4d73ae4225bce3d445ee6dd1f6.ai"
-    },
-    {
-        name: "Cvent_File8.pdf",
+        linkNumber: 8,
+        label: "Link 1",
+        name: "Cvent File 8.23 MB",
         url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/241e3b3db2cc47e0bb056f054e4532dc.pdf"
     },
     {
-        name: "Cvent_File9.pdf",
+        linkNumber: 9,
+        label: "Link 2",
+        name: "Cvent File 9.73 MB",
         url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/1915ccb2f13946f9acffc74f82c529c2.pdf"
+    },
+    {
+        linkNumber: 10,
+        label: "Cloudflare 20 MB 測速",
+        name: "Cloudflare_20MB.bin",
+        url: "https://speed.cloudflare.com/__down?bytes=20000000"
     }
 ];
 
 const API_URL = "/api/download-results";
 const PENDING_KEY = "cvent_pending_download_records_v1";
 
-const fileList = document.getElementById("file-list");
-const batchStatus = document.getElementById("batch-status");
-const uploadStatus = document.getElementById("upload-status");
+const fileList =
+    document.getElementById("file-list");
 
-const parallelButton =
-    document.getElementById("download-parallel");
-
-const sequentialButton =
-    document.getElementById("download-sequential");
+const uploadStatus =
+    document.getElementById("upload-status");
 
 const uploadButton =
     document.getElementById("upload-records");
@@ -262,7 +239,6 @@ const resetButton =
 
 const fileElements = [];
 
-let batchRunning = false;
 let uploadRunning = false;
 
 function newID() {
@@ -280,11 +256,16 @@ function newID() {
     );
 }
 
-let sessionID = sessionStorage.getItem("cvent_session_id");
+let sessionID =
+    sessionStorage.getItem("cvent_session_id");
 
 if (!sessionID) {
     sessionID = newID();
-    sessionStorage.setItem("cvent_session_id", sessionID);
+
+    sessionStorage.setItem(
+        "cvent_session_id",
+        sessionID
+    );
 }
 
 function formatBytes(bytes) {
@@ -293,15 +274,23 @@ function formatBytes(bytes) {
     }
 
     const units = ["B", "KB", "MB", "GB", "TB"];
+
     let value = bytes;
     let index = 0;
 
-    while (value >= 1024 && index < units.length - 1) {
+    while (
+        value >= 1024 &&
+        index < units.length - 1
+    ) {
         value /= 1024;
         index++;
     }
 
-    return `${value.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
+    return (
+        value.toFixed(index === 0 ? 0 : 2) +
+        " " +
+        units[index]
+    );
 }
 
 function pad(value) {
@@ -312,10 +301,14 @@ function createUniqueFilename(originalName) {
     const dot = originalName.lastIndexOf(".");
 
     const base =
-        dot > 0 ? originalName.substring(0, dot) : originalName;
+        dot > 0
+            ? originalName.substring(0, dot)
+            : originalName;
 
     const extension =
-        dot > 0 ? originalName.substring(dot) : "";
+        dot > 0
+            ? originalName.substring(dot)
+            : "";
 
     const now = new Date();
 
@@ -328,7 +321,14 @@ function createUniqueFilename(originalName) {
         pad(now.getMinutes()) +
         pad(now.getSeconds());
 
-    return `${base}_${timestamp}_${newID().substring(0, 8)}${extension}`;
+    return (
+        base +
+        "_" +
+        timestamp +
+        "_" +
+        newID().substring(0, 8) +
+        extension
+    );
 }
 
 function createNoCacheURL(originalURL) {
@@ -345,7 +345,9 @@ function getPendingRecords() {
             localStorage.getItem(PENDING_KEY) || "[]"
         );
 
-        return Array.isArray(records) ? records : [];
+        return Array.isArray(records)
+            ? records
+            : [];
     } catch (_) {
         return [];
     }
@@ -363,13 +365,20 @@ function savePendingRecords(records) {
 function queueRecord(record) {
     const records = getPendingRecords();
 
-    if (!records.some(item => item.record_id === record.record_id)) {
+    const alreadyExists = records.some(
+        item => item.record_id === record.record_id
+    );
+
+    if (!alreadyExists) {
         records.push(record);
         savePendingRecords(records);
     }
 
-    // 不阻塞下一個下載
-    flushPendingRecords().catch(console.error);
+    /*
+     * 不在這裡呼叫 flushPendingRecords。
+     * 紀錄只會保存在 localStorage，
+     * 等使用者按下回傳按鈕。
+     */
 }
 
 function updateUploadStatus(message = "") {
@@ -377,15 +386,25 @@ function updateUploadStatus(message = "") {
 
     if (message) {
         uploadStatus.textContent =
-            `${message}｜未回傳紀錄：${count}`;
-    } else if (count === 0) {
+            message +
+            "｜未上傳紀錄：" +
+            count +
+            " 筆";
+
+        return;
+    }
+
+    if (count === 0) {
         uploadStatus.className = "status success";
         uploadStatus.textContent =
-            "所有速度紀錄已回傳 Server";
+            "目前沒有等待上傳的速度紀錄";
     } else {
         uploadStatus.className = "status";
+
         uploadStatus.textContent =
-            `等待回傳 Server 的紀錄：${count} 筆`;
+            "等待手動回傳 Server 的紀錄：" +
+            count +
+            " 筆";
     }
 }
 
@@ -405,7 +424,7 @@ async function flushPendingRecords() {
     uploadButton.disabled = true;
 
     uploadStatus.className = "status";
-    updateUploadStatus("正在回傳");
+    updateUploadStatus("正在上傳");
 
     const sentIDs = new Set(
         records.map(record => record.record_id)
@@ -432,44 +451,68 @@ async function flushPendingRecords() {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            throw new Error(
+                "HTTP " + response.status
+            );
         }
 
-        const remaining = getPendingRecords().filter(
-            record => !sentIDs.has(record.record_id)
-        );
+        const remaining =
+            getPendingRecords().filter(
+                record => {
+                    return !sentIDs.has(
+                        record.record_id
+                    );
+                }
+            );
 
         savePendingRecords(remaining);
 
         uploadStatus.className = "status success";
+
         updateUploadStatus(
-            `成功回傳 ${records.length} 筆紀錄`
+            "成功上傳 " +
+            records.length +
+            " 筆紀錄"
         );
     } catch (error) {
-        console.error("紀錄回傳失敗：", error);
+        console.error(
+            "紀錄上傳失敗：",
+            error
+        );
+
+        let message =
+            error.message || String(error);
+
+        if (error.name === "AbortError") {
+            message = "連線逾時";
+        }
 
         uploadStatus.className = "status error";
+
         updateUploadStatus(
-            `回傳失敗：${error.message || error}`
+            "上傳失敗：" + message
         );
     } finally {
         clearTimeout(timeout);
 
         uploadRunning = false;
-        uploadButton.disabled = batchRunning;
+        uploadButton.disabled = false;
     }
 }
 
 function saveBlob(blob, filename) {
-    const objectURL = URL.createObjectURL(blob);
+    const objectURL =
+        URL.createObjectURL(blob);
 
-    const link = document.createElement("a");
+    const link =
+        document.createElement("a");
 
     link.href = objectURL;
     link.download = filename;
     link.style.display = "none";
 
     document.body.appendChild(link);
+
     link.click();
     link.remove();
 
@@ -480,19 +523,17 @@ function saveBlob(blob, filename) {
 
 function createBaseRecord(
     file,
-    index,
-    mode,
-    batchID,
     startedAt
 ) {
     return {
         record_id: newID(),
         session_id: sessionID,
-        batch_id: batchID || null,
+        batch_id: null,
 
-        mode,
-        file_index: index + 1,
+        mode: "individual",
+        file_index: file.linkNumber,
         file_name: file.name,
+        file_label: file.label,
         source_url: file.url,
 
         status: "unknown",
@@ -511,10 +552,7 @@ function createBaseRecord(
 
 async function downloadAndMeasure(
     file,
-    index,
-    elements,
-    mode = "individual",
-    batchID = null
+    elements
 ) {
     const {
         button,
@@ -530,17 +568,17 @@ async function downloadAndMeasure(
     progress.removeAttribute("max");
 
     status.className = "status";
-    status.textContent = "正在連接 Cvent Server…";
+    status.textContent =
+        "正在連接下載 Server…";
 
-    const startedAt = new Date().toISOString();
+    const startedAt =
+        new Date().toISOString();
 
-    const record = createBaseRecord(
-        file,
-        index,
-        mode,
-        batchID,
-        startedAt
-    );
+    const record =
+        createBaseRecord(
+            file,
+            startedAt
+        );
 
     const startTime = performance.now();
 
@@ -555,26 +593,31 @@ async function downloadAndMeasure(
                 mode: "cors",
                 cache: "no-store",
                 credentials: "omit",
-                redirect: "follow",
-                headers: {
-                    "Cache-Control": "no-cache",
-                    "Pragma": "no-cache"
-                }
+                redirect: "follow"
             }
         );
 
         if (!response.ok) {
             throw new Error(
-                `HTTP ${response.status} ${response.statusText}`
+                "HTTP " +
+                response.status +
+                " " +
+                response.statusText
             );
         }
 
         if (!response.body) {
-            throw new Error("瀏覽器不支援串流下載");
+            throw new Error(
+                "瀏覽器不支援串流下載"
+            );
         }
 
         const contentLength =
-            Number(response.headers.get("Content-Length")) || 0;
+            Number(
+                response.headers.get(
+                    "Content-Length"
+                )
+            ) || 0;
 
         if (contentLength > 0) {
             progress.max = contentLength;
@@ -587,46 +630,77 @@ async function downloadAndMeasure(
         let lastUpdate = 0;
 
         while (true) {
-            const result = await reader.read();
+            const result =
+                await reader.read();
 
             if (result.done) {
                 break;
             }
 
             chunks.push(result.value);
-            receivedBytes += result.value.byteLength;
 
-            const currentTime = performance.now();
+            receivedBytes +=
+                result.value.byteLength;
 
-            if (currentTime - lastUpdate >= 100) {
+            const currentTime =
+                performance.now();
+
+            if (
+                currentTime - lastUpdate >= 100
+            ) {
                 const seconds = Math.max(
-                    (currentTime - startTime) / 1000,
+                    (
+                        currentTime -
+                        startTime
+                    ) / 1000,
                     0.001
                 );
 
                 const MBps =
-                    receivedBytes / seconds / 1_000_000;
+                    receivedBytes /
+                    seconds /
+                    1_000_000;
 
                 const Mbps =
-                    receivedBytes * 8 / seconds / 1_000_000;
+                    receivedBytes *
+                    8 /
+                    seconds /
+                    1_000_000;
 
                 if (contentLength > 0) {
-                    progress.value = receivedBytes;
+                    progress.value =
+                        receivedBytes;
 
                     const percent =
-                        receivedBytes / contentLength * 100;
+                        receivedBytes /
+                        contentLength *
+                        100;
 
                     status.textContent =
-                        `${formatBytes(receivedBytes)} / ` +
-                        `${formatBytes(contentLength)}｜` +
-                        `${percent.toFixed(1)}%｜` +
-                        `${MBps.toFixed(2)} MB/s｜` +
-                        `${Mbps.toFixed(2)} Mbps`;
+                        formatBytes(
+                            receivedBytes
+                        ) +
+                        " / " +
+                        formatBytes(
+                            contentLength
+                        ) +
+                        "｜" +
+                        percent.toFixed(1) +
+                        "%｜" +
+                        MBps.toFixed(2) +
+                        " MB/s｜" +
+                        Mbps.toFixed(2) +
+                        " Mbps";
                 } else {
                     status.textContent =
-                        `${formatBytes(receivedBytes)}｜` +
-                        `${MBps.toFixed(2)} MB/s｜` +
-                        `${Mbps.toFixed(2)} Mbps`;
+                        formatBytes(
+                            receivedBytes
+                        ) +
+                        "｜" +
+                        MBps.toFixed(2) +
+                        " MB/s｜" +
+                        Mbps.toFixed(2) +
+                        " Mbps";
                 }
 
                 lastUpdate = currentTime;
@@ -636,52 +710,87 @@ async function downloadAndMeasure(
         const endTime = performance.now();
 
         const elapsedSeconds = Math.max(
-            (endTime - startTime) / 1000,
+            (
+                endTime -
+                startTime
+            ) / 1000,
             0.001
         );
 
         const averageMBps =
-            receivedBytes / elapsedSeconds / 1_000_000;
+            receivedBytes /
+            elapsedSeconds /
+            1_000_000;
 
         const averageMbps =
-            receivedBytes * 8 / elapsedSeconds / 1_000_000;
+            receivedBytes *
+            8 /
+            elapsedSeconds /
+            1_000_000;
 
         const contentType =
-            response.headers.get("Content-Type") ||
+            response.headers.get(
+                "Content-Type"
+            ) ||
             "application/octet-stream";
 
-        const blob = new Blob(chunks, {
-            type: contentType
-        });
+        const blob = new Blob(
+            chunks,
+            {
+                type: contentType
+            }
+        );
 
-        const filename = createUniqueFilename(file.name);
+        const filename =
+            createUniqueFilename(
+                file.name
+            );
 
         saveBlob(blob, filename);
 
-        progress.max = receivedBytes || 1;
-        progress.value = receivedBytes || 1;
+        progress.max =
+            receivedBytes || 1;
+
+        progress.value =
+            receivedBytes || 1;
 
         record.status = "success";
         record.bytes = receivedBytes;
+
         record.elapsed_ms = Math.round(
             elapsedSeconds * 1000
         );
+
         record.average_MBps = Number(
             averageMBps.toFixed(3)
         );
+
         record.average_mbps = Number(
             averageMbps.toFixed(3)
         );
-        record.finished_at = new Date().toISOString();
 
-        status.className = "status success";
+        record.finished_at =
+            new Date().toISOString();
+
+        status.className =
+            "status success";
+
         status.innerHTML =
-            `下載完成：${formatBytes(receivedBytes)}<br>` +
-            `耗時：${elapsedSeconds.toFixed(2)} 秒<br>` +
-            `平均速度：${averageMBps.toFixed(2)} MB/s ` +
-            `（${averageMbps.toFixed(2)} Mbps）<br>` +
-            `檔名：${filename}<br>` +
-            `紀錄已加入回傳佇列`;
+            "下載完成：" +
+            formatBytes(receivedBytes) +
+            "<br>" +
+            "耗時：" +
+            elapsedSeconds.toFixed(2) +
+            " 秒<br>" +
+            "平均速度：" +
+            averageMBps.toFixed(2) +
+            " MB/s（" +
+            averageMbps.toFixed(2) +
+            " Mbps）<br>" +
+            "檔名：" +
+            filename +
+            "<br>" +
+            "紀錄已儲存在瀏覽器，尚未上傳至 Server";
 
         queueRecord(record);
 
@@ -690,29 +799,44 @@ async function downloadAndMeasure(
     } catch (error) {
         console.error(error);
 
-        const endTime = performance.now();
+        const endTime =
+            performance.now();
 
-        let message = error.message || String(error);
+        let message =
+            error.message ||
+            String(error);
 
         if (
-            message.includes("Failed to fetch") ||
-            message.includes("Load failed")
+            message.includes(
+                "Failed to fetch"
+            ) ||
+            message.includes(
+                "Load failed"
+            )
         ) {
             message =
-                "無法讀取 Cvent 檔案，可能是 CORS 或網路連線問題";
+                "無法讀取檔案，可能是 CORS 或網路連線問題";
         }
 
         record.status = "failed";
         record.bytes = receivedBytes;
+
         record.elapsed_ms = Math.round(
             endTime - startTime
         );
-        record.finished_at = new Date().toISOString();
+
+        record.finished_at =
+            new Date().toISOString();
+
         record.error = message;
 
-        status.className = "status error";
+        status.className =
+            "status error";
+
         status.textContent =
-            `下載失敗：${message}｜紀錄已加入回傳佇列`;
+            "下載失敗：" +
+            message +
+            "｜失敗紀錄已儲存在瀏覽器，尚未上傳至 Server";
 
         queueRecord(record);
 
@@ -723,174 +847,50 @@ async function downloadAndMeasure(
             try {
                 reader.releaseLock();
             } catch (_) {
-                // 不影響結果
+                // 不影響下載結果
             }
         }
 
-        button.disabled = batchRunning;
-        button.textContent = "再次下載及測速";
+        button.disabled = false;
+        button.textContent =
+            "再次下載及測速";
     }
 }
 
-function setBatchRunning(running) {
-    batchRunning = running;
+files.forEach(file => {
+    const card =
+        document.createElement("section");
 
-    parallelButton.disabled = running;
-    sequentialButton.disabled = running;
-    resetButton.disabled = running;
-    uploadButton.disabled = running;
-
-    fileElements.forEach(elements => {
-        elements.button.disabled = running;
-    });
-}
-
-function showBatchSummary(
-    modeName,
-    results,
-    startTime,
-    endTime
-) {
-    const successful = results.filter(
-        record => record && record.status === "success"
-    );
-
-    const failed = results.filter(
-        record => !record || record.status !== "success"
-    );
-
-    const totalBytes = successful.reduce(
-        (sum, record) => sum + record.bytes,
-        0
-    );
-
-    const wallSeconds = Math.max(
-        (endTime - startTime) / 1000,
-        0.001
-    );
-
-    const aggregateMbps =
-        totalBytes * 8 / wallSeconds / 1_000_000;
-
-    batchStatus.className =
-        failed.length === 0
-            ? "status success"
-            : "status error";
-
-    batchStatus.innerHTML =
-        `${modeName}完成<br>` +
-        `成功：${successful.length} 個｜` +
-        `失敗：${failed.length} 個<br>` +
-        `成功下載總量：${formatBytes(totalBytes)}<br>` +
-        `總耗時：${wallSeconds.toFixed(2)} 秒<br>` +
-        `整批平均吞吐量：${aggregateMbps.toFixed(2)} Mbps`;
-}
-
-async function downloadAllParallel() {
-    if (batchRunning) {
-        return;
-    }
-
-    setBatchRunning(true);
-
-    const batchID = newID();
-    const startTime = performance.now();
-
-    batchStatus.className = "status";
-    batchStatus.textContent =
-        "正在同時下載全部 9 個檔案……";
-
-    try {
-        const settled = await Promise.allSettled(
-            files.map((file, index) => {
-                return downloadAndMeasure(
-                    file,
-                    index,
-                    fileElements[index],
-                    "parallel",
-                    batchID
-                );
-            })
-        );
-
-        const results = settled.map(item => {
-            return item.status === "fulfilled"
-                ? item.value
-                : null;
-        });
-
-        showBatchSummary(
-            "全部同時下載",
-            results,
-            startTime,
-            performance.now()
-        );
-    } finally {
-        setBatchRunning(false);
-    }
-}
-
-async function downloadAllSequential() {
-    if (batchRunning) {
-        return;
-    }
-
-    setBatchRunning(true);
-
-    const batchID = newID();
-    const startTime = performance.now();
-    const results = [];
-
-    try {
-        for (let index = 0; index < files.length; index++) {
-            batchStatus.className = "status";
-
-            batchStatus.textContent =
-                `逐一下載中：${index + 1} / ${files.length}｜` +
-                files[index].name;
-
-            const result = await downloadAndMeasure(
-                files[index],
-                index,
-                fileElements[index],
-                "sequential",
-                batchID
-            );
-
-            results.push(result);
-        }
-
-        showBatchSummary(
-            "逐一全部下載",
-            results,
-            startTime,
-            performance.now()
-        );
-    } finally {
-        setBatchRunning(false);
-    }
-}
-
-files.forEach((file, index) => {
-    const card = document.createElement("section");
     card.className = "file-card";
 
-    const fileName = document.createElement("div");
-    fileName.className = "file-name";
-    fileName.textContent =
-        `${index + 1}. ${file.name}`;
+    const fileName =
+        document.createElement("div");
 
-    const fileURL = document.createElement("div");
+    fileName.className = "file-name";
+
+    fileName.textContent =
+        file.label +
+        "：" +
+        file.name;
+
+    const fileURL =
+        document.createElement("div");
+
     fileURL.className = "file-url";
     fileURL.textContent = file.url;
 
-    const button = document.createElement("button");
+    const button =
+        document.createElement("button");
+
     button.type = "button";
     button.textContent = "下載及測速";
 
-    const progress = document.createElement("progress");
+    const progress =
+        document.createElement("progress");
 
-    const status = document.createElement("div");
+    const status =
+        document.createElement("div");
+
     status.className = "status";
     status.textContent = "尚未開始";
 
@@ -902,17 +902,15 @@ files.forEach((file, index) => {
 
     fileElements.push(elements);
 
-    button.addEventListener("click", () => {
-        if (!batchRunning) {
+    button.addEventListener(
+        "click",
+        () => {
             downloadAndMeasure(
                 file,
-                index,
-                elements,
-                "individual",
-                null
+                elements
             );
         }
-    });
+    );
 
     card.append(
         fileName,
@@ -925,65 +923,46 @@ files.forEach((file, index) => {
     fileList.appendChild(card);
 });
 
-parallelButton.addEventListener(
-    "click",
-    downloadAllParallel
-);
-
-sequentialButton.addEventListener(
-    "click",
-    downloadAllSequential
-);
-
 uploadButton.addEventListener(
     "click",
     flushPendingRecords
 );
 
-resetButton.addEventListener("click", () => {
-    fileElements.forEach(elements => {
-        elements.progress.style.display = "none";
-        elements.progress.removeAttribute("value");
-        elements.progress.removeAttribute("max");
+resetButton.addEventListener(
+    "click",
+    () => {
+        fileElements.forEach(elements => {
+            elements.progress.style.display =
+                "none";
 
-        elements.status.className = "status";
-        elements.status.textContent = "尚未開始";
-    });
+            elements.progress.removeAttribute(
+                "value"
+            );
 
-    batchStatus.className = "status";
-    batchStatus.textContent = "尚未開始批次下載";
-});
+            elements.progress.removeAttribute(
+                "max"
+            );
+
+            elements.status.className =
+                "status";
+
+            elements.status.textContent =
+                "尚未開始";
+        });
+    }
+);
 
 /*
- * 用戶切換 App、關閉分頁或令頁面進入背景時，
- * 嘗試把尚未回傳的紀錄送出。
+ * 頁面載入時只顯示未上傳紀錄數量。
  *
- * 不清除 localStorage，因為 sendBeacon 不會提供
- * Server 回應。Server 會使用 record_id 避免重複紀錄。
+ * 不會自動呼叫 flushPendingRecords。
+ * 不會使用 visibilitychange。
+ * 不會使用 sendBeacon。
+ *
+ * 只有使用者按下「重新上傳未送紀錄」
+ * 才會回傳紀錄。
  */
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState !== "hidden") {
-        return;
-    }
-
-    const records = getPendingRecords();
-
-    if (records.length === 0) {
-        return;
-    }
-
-    const data = new Blob(
-        [JSON.stringify({ records })],
-        { type: "application/json" }
-    );
-
-    navigator.sendBeacon(API_URL, data);
-});
-
 updateUploadStatus();
-
-// 開頁時嘗試重送未成功回傳的紀錄
-flushPendingRecords().catch(console.error);
 </script>
 </body>
 </html>
