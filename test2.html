@@ -130,6 +130,27 @@
             font-weight: 600;
         }
 
+        .upload-panel {
+            margin-top: 24px;
+            padding: 18px;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 14px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+        }
+
+        .upload-panel-title {
+            margin: 0 0 8px;
+            font-size: 19px;
+            font-weight: 700;
+        }
+
+        .upload-panel-description {
+            margin: 0;
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
         .warning {
             margin-top: 20px;
             padding: 14px;
@@ -165,32 +186,43 @@
         並要求瀏覽器不要使用 HTTP 快取。下載完成後會顯示平均速度，
         並以新檔名儲存。
         測速紀錄只會先儲存在此瀏覽器，
-        必須按下「上傳紀錄」才會回傳 Server。
+        必須按下「上傳紀錄」才會上傳至 Server。
     </p>
 
-    <div class="toolbar">
-        <button
-            id="upload-records"
-            class="secondary-button"
-            type="button"
-        >
-            上傳紀錄
-        </button>
-
-        <button
-            id="reset-results"
-            class="secondary-button"
-            type="button"
-        >
-            清除畫面結果
-        </button>
-    </div>
-
-    <div id="upload-status" class="status">
-        速度紀錄：檢查中……
-    </div>
-
     <div id="file-list"></div>
+
+    <section class="upload-panel">
+        <h2 class="upload-panel-title">
+            測速紀錄上傳
+        </h2>
+
+        <p class="upload-panel-description">
+            下載及測速完成後，紀錄會先儲存在此瀏覽器。
+            請按下「上傳紀錄」傳送到 Server。
+        </p>
+
+        <div id="upload-status" class="status">
+            速度紀錄：檢查中……
+        </div>
+
+        <div class="toolbar">
+            <button
+                id="upload-records"
+                class="secondary-button"
+                type="button"
+            >
+                上傳紀錄
+            </button>
+
+            <button
+                id="reset-results"
+                class="secondary-button"
+                type="button"
+            >
+                清除畫面結果
+            </button>
+        </div>
+    </section>
 
     <div class="warning">
         此網頁使用 JavaScript Fetch 讀取外部下載網址。
@@ -222,7 +254,7 @@ const files = [
     }
 ];
 
-const API_URL = "/api/download-results";
+const API_URL = "https://192.168.70.115/api/download-results";
 const PENDING_KEY = "cvent_pending_download_records_v1";
 
 const fileList =
@@ -377,7 +409,7 @@ function queueRecord(record) {
     /*
      * 不在這裡呼叫 flushPendingRecords。
      * 紀錄只會保存在 localStorage，
-     * 等使用者按下回傳按鈕。
+     * 等使用者按下「上傳紀錄」按鈕。
      */
 }
 
@@ -402,7 +434,7 @@ function updateUploadStatus(message = "") {
         uploadStatus.className = "status";
 
         uploadStatus.textContent =
-            "等待手動回傳 Server 的紀錄：" +
+            "等待手動上傳至 Server 的紀錄：" +
             count +
             " 筆";
     }
@@ -451,8 +483,34 @@ async function flushPendingRecords() {
         });
 
         if (!response.ok) {
+            const allow =
+                response.headers.get("Allow");
+
+            let serverMessage = "";
+
+            try {
+                serverMessage =
+                    (await response.text()).trim();
+            } catch (_) {
+                // 無法讀取 Server 回應內容
+            }
+
+            if (response.status === 405) {
+                throw new Error(
+                    "HTTP 405：Server 不允許使用 POST 方法" +
+                    (allow
+                        ? "（允許方法：" + allow + "）"
+                        : "") +
+                    "。請檢查 /api/download-results 的 Nginx 或後端設定"
+                );
+            }
+
             throw new Error(
-                "HTTP " + response.status
+                "HTTP " +
+                response.status +
+                (serverMessage
+                    ? "：" + serverMessage.substring(0, 200)
+                    : "")
             );
         }
 
@@ -959,8 +1017,8 @@ resetButton.addEventListener(
  * 不會使用 visibilitychange。
  * 不會使用 sendBeacon。
  *
- * 只有使用者按下「重新上傳未送紀錄」
- * 才會回傳紀錄。
+ * 只有使用者按下「上傳紀錄」
+ * 才會上傳紀錄。
  */
 updateUploadStatus();
 </script>
