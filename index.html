@@ -55,6 +55,18 @@
         .secondary-button:hover:not(:disabled) { background: #1f2937; }
         .save-button { display: none; background: #047857; }
         .save-button:hover:not(:disabled) { background: #065f46; }
+        .upload-button {
+            background: #dc2626;
+        }
+        .upload-button:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+        .upload-button.success {
+            background: #059669;
+        }
+        .upload-button.success:hover:not(:disabled) {
+            background: #047857;
+        }
         progress { display: none; width: 100%; height: 19px; margin-top: 15px; }
         .status { min-height: 25px; margin-top: 12px; color: #374151; line-height: 1.6; word-break: break-word; }
         .success { color: #047857; font-weight: 600; }
@@ -90,35 +102,12 @@
             color: #92400e;
             line-height: 1.6;
         }
-        .upload-method-selector {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
-            padding: 12px;
-            background: #f3f4f6;
-            border-radius: 8px;
-        }
-        .upload-method-selector label {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .upload-method-selector input[type="radio"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-        .hidden { display: none !important; }
         @media (max-width: 600px) {
             body { padding: 14px; }
             .file-card { padding: 15px; }
             .file-actions { display: block; }
             button { width: 100%; }
             .file-actions button + button { margin-top: 10px; }
-            .upload-method-selector { flex-direction: column; }
         }
     </style>
 </head>
@@ -157,25 +146,9 @@
             請按下「上傳紀錄」傳送到 Server。
         </p>
 
-        <div class="upload-method-selector">
-            <span style="font-weight:600;margin-right:10px;">上傳方式：</span>
-            <label>
-                <input type="radio" name="upload-method" value="fetch" checked>
-                Fetch (CORS)
-            </label>
-            <label>
-                <input type="radio" name="upload-method" value="form">
-                Form 提交 (無 CORS)
-            </label>
-            <label>
-                <input type="radio" name="upload-method" value="beacon">
-                Beacon (背景發送)
-            </label>
-        </div>
-
         <div id="upload-status" class="status">速度紀錄：檢查中……</div>
         <div class="toolbar">
-            <button id="upload-records" class="secondary-button" type="button">上傳紀錄</button>
+            <button id="upload-records" class="upload-button" type="button">📤 上傳紀錄</button>
             <button id="reset-results" class="secondary-button" type="button">清除畫面結果</button>
         </div>
     </section>
@@ -275,7 +248,6 @@ const uploadButton = document.getElementById("upload-records");
 const resetButton = document.getElementById("reset-results");
 const overallAverage = document.getElementById("overall-average");
 const apiInfo = document.getElementById("api-info");
-const uploadMethods = document.querySelectorAll('input[name="upload-method"]');
 
 const fileElements = [];
 const completedSpeeds = [];
@@ -336,13 +308,6 @@ function createNoCacheURL(originalURL) {
     return url.toString();
 }
 
-function getSelectedMethod() {
-    for (const radio of uploadMethods) {
-        if (radio.checked) return radio.value;
-    }
-    return 'fetch';
-}
-
 /* =====================================================================
  * 更新 API 資訊
  * ===================================================================== */
@@ -355,6 +320,18 @@ function updateApiInfo() {
         '⚠️ 當前從外部訪問，API：' + url + '（可能因 CORS 被阻擋）';
     apiInfo.className = 'api-info ' + status;
     apiInfo.textContent = msg;
+}
+
+/* =====================================================================
+ * 更新上傳按鈕顏色
+ * ===================================================================== */
+
+function setUploadButtonColor(isSuccess = false) {
+    if (isSuccess) {
+        uploadButton.className = 'upload-button success';
+    } else {
+        uploadButton.className = 'upload-button';
+    }
 }
 
 /* =====================================================================
@@ -400,6 +377,8 @@ function queueRecord(record) {
     if (!records.some(item => item.record_id === record.record_id)) {
         records.push(record);
         savePendingRecords(records);
+        // 有新紀錄，按鈕變回紅色
+        setUploadButtonColor(false);
     }
 }
 
@@ -412,121 +391,37 @@ function updateUploadStatus(message = "") {
     if (count === 0) {
         uploadStatus.className = "status success";
         uploadStatus.textContent = "目前沒有等待上傳的速度紀錄";
+        // 沒有紀錄，按鈕變綠色
+        setUploadButtonColor(true);
     } else {
         uploadStatus.className = "status";
         uploadStatus.textContent = "等待手動上傳至 Server 的紀錄：" + count + " 筆";
+        // 有紀錄，按鈕變紅色
+        setUploadButtonColor(false);
     }
 }
 
 /* =====================================================================
- * 上傳方法 1：Fetch (CORS)
- * ===================================================================== */
-
-async function uploadWithFetch(records) {
-    const response = await fetch(getAPIUrl(), {
-        method: "POST",
-        cache: "no-store",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ records })
-    });
-
-    if (!response.ok) {
-        let serverMessage = "";
-        try { serverMessage = (await response.text()).trim(); } catch (_) {}
-        throw new Error("HTTP " + response.status + (serverMessage ? "：" + serverMessage.substring(0, 200) : ""));
-    }
-
-    return response;
-}
-
-/* =====================================================================
- * 上傳方法 2：Form 提交 (無 CORS)
- * ===================================================================== */
-
-function uploadWithForm(records) {
-    return new Promise((resolve, reject) => {
-        const formId = 'upload_form_' + Date.now();
-        const iframeId = 'upload_iframe_' + Date.now();
-
-        // 創建 iframe
-        const iframe = document.createElement('iframe');
-        iframe.id = iframeId;
-        iframe.name = iframeId;
-        iframe.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
-        document.body.appendChild(iframe);
-
-        // 創建 form
-        const form = document.createElement('form');
-        form.id = formId;
-        form.method = 'POST';
-        form.action = getAPIUrl();
-        form.target = iframeId;
-        form.enctype = 'application/x-www-form-urlencoded';
-        form.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
-        document.body.appendChild(form);
-
-        // 將資料放入 form (URL encoded)
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'records';
-        input.value = JSON.stringify(records);
-        form.appendChild(input);
-
-        // 監聽 iframe 載入
-        let loaded = false;
-        iframe.onload = () => {
-            if (loaded) return;
-            loaded = true;
-
-            try {
-                // 嘗試讀取 iframe 內容
-                const doc = iframe.contentDocument || iframe.contentWindow.document;
-                const bodyText = doc.body ? doc.body.textContent || doc.body.innerText || '' : '';
-                resolve({ ok: true, text: bodyText });
-            } catch (e) {
-                // 跨域時無法讀取內容，但請求已發送
-                resolve({ ok: true, text: '已發送（無法讀取回應）' });
-            } finally {
-                setTimeout(() => {
-                    form.remove();
-                    iframe.remove();
-                }, 1000);
-            }
-        };
-
-        // 逾時處理
-        const timeout = setTimeout(() => {
-            if (!loaded) {
-                loaded = true;
-                form.remove();
-                iframe.remove();
-                reject(new Error('上傳逾時（10秒）'));
-            }
-        }, 10000);
-
-        // 提交表單
-        form.submit();
-    });
-}
-
-/* =====================================================================
- * 上傳方法 3：Beacon (背景發送)
+ * 上傳方法：Beacon (背景發送，無 CORS)
  * ===================================================================== */
 
 function uploadWithBeacon(records) {
     return new Promise((resolve, reject) => {
-        const blob = new Blob(
-            [JSON.stringify({ records })],
-            { type: 'application/json' }
-        );
+        try {
+            const blob = new Blob(
+                [JSON.stringify({ records })],
+                { type: 'application/json' }
+            );
 
-        const sent = navigator.sendBeacon(getAPIUrl(), blob);
+            const sent = navigator.sendBeacon(getAPIUrl(), blob);
 
-        if (sent) {
-            resolve({ ok: true, text: '已透過 Beacon 發送' });
-        } else {
-            reject(new Error('Beacon 發送失敗（瀏覽器限制）'));
+            if (sent) {
+                resolve({ ok: true, text: '已透過 Beacon 發送' });
+            } else {
+                reject(new Error('Beacon 發送失敗（瀏覽器限制或佇列已滿）'));
+            }
+        } catch (error) {
+            reject(new Error('Beacon 錯誤：' + (error.message || String(error))));
         }
     });
 }
@@ -549,45 +444,34 @@ async function flushPendingRecords() {
     uploadStatus.className = "status";
     updateUploadStatus("正在上傳");
 
-    const method = getSelectedMethod();
     const sentIDs = new Set(records.map(r => r.record_id));
 
     try {
-        let result;
-
-        switch (method) {
-            case 'form':
-                result = await uploadWithForm(records);
-                break;
-            case 'beacon':
-                result = await uploadWithBeacon(records);
-                break;
-            case 'fetch':
-            default:
-                result = await uploadWithFetch(records);
-                break;
-        }
+        const result = await uploadWithBeacon(records);
 
         // 移除已上傳的紀錄
         const remaining = getPendingRecords().filter(r => !sentIDs.has(r.record_id));
         savePendingRecords(remaining);
 
         uploadStatus.className = "status success";
-        updateUploadStatus(
-            "✅ 成功上傳 " + records.length + " 筆紀錄（方式：' + method + '）" +
-            (result.text ? "｜回應：" + result.text.substring(0, 100) : "")
-        );
+        updateUploadStatus("✅ 成功上傳 " + records.length + " 筆紀錄");
+
+        // 上傳成功，按鈕變綠色
+        setUploadButtonColor(true);
 
     } catch (error) {
         console.error("上傳失敗：", error);
         let msg = error.message || String(error);
 
         if (msg.includes('Failed to fetch') || msg.includes('Load failed')) {
-            msg = '無法連接伺服器。請確認內聯網連線，或嘗試切換上傳方式。';
+            msg = '無法連接伺服器。請確認內聯網連線。';
         }
 
         uploadStatus.className = "status error";
         updateUploadStatus("❌ 上傳失敗：" + msg);
+
+        // 上傳失敗，按鈕保持紅色
+        setUploadButtonColor(false);
     } finally {
         uploadRunning = false;
         uploadButton.disabled = false;
@@ -886,6 +770,9 @@ updateApiInfo();
 updateOverallAverage();
 updateUploadStatus();
 
+// 初始化按鈕顏色
+setUploadButtonColor(getPendingRecords().length === 0);
+
 console.log('🔍 當前環境：', {
     host: currentHost,
     isIntranet: isIntranet,
@@ -895,9 +782,9 @@ console.log('🔍 當前環境：', {
 
 // 如果在內聯網，顯示提示
 if (isIntranet) {
-    console.log('✅ 已在內聯網環境，可直接上傳');
+    console.log('✅ 已在內聯網環境，使用 Beacon 上傳');
 } else {
-    console.warn('⚠️ 從外部訪問，請切換到 Form 提交模式');
+    console.warn('⚠️ 從外部訪問，Beacon 可能無法運作');
 }
 </script>
 </body>
