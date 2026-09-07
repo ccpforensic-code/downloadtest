@@ -2,49 +2,21 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="utf-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1, viewport-fit=cover"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>檔案下載速度測試</title>
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; }
         body {
             margin: 0;
             padding: 20px;
             background: #f3f4f6;
             color: #111827;
-            font-family:
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                "PingFang TC",
-                "Microsoft JhengHei",
-                sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
         }
-
-        .container {
-            width: min(920px, 100%);
-            margin: 0 auto;
-        }
-
-        h1 {
-            margin: 0 0 10px;
-            font-size: clamp(25px, 5vw, 36px);
-        }
-
-        .description {
-            margin: 0 0 20px;
-            color: #4b5563;
-            line-height: 1.7;
-        }
-
+        .container { width: min(920px, 100%); margin: 0 auto; }
+        h1 { margin: 0 0 10px; font-size: clamp(25px, 5vw, 36px); }
+        .description { margin: 0 0 20px; color: #4b5563; line-height: 1.7; }
         .average-panel {
             margin: 18px 0;
             padding: 16px 18px;
@@ -52,58 +24,20 @@
             border: 1px solid #93c5fd;
             border-radius: 12px;
         }
-
-        .average-title {
-            margin-bottom: 6px;
-            color: #1e3a8a;
-            font-size: 16px;
-            font-weight: 700;
-        }
-
-        .average-value {
-            color: #1e40af;
-            font-size: 18px;
-            font-weight: 700;
-            line-height: 1.5;
-        }
-
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 18px 0;
-        }
-
+        .average-title { margin-bottom: 6px; color: #1e3a8a; font-size: 16px; font-weight: 700; }
+        .average-value { color: #1e40af; font-size: 18px; font-weight: 700; line-height: 1.5; }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
         .file-card {
             margin: 14px 0;
             padding: 18px;
             background: #ffffff;
             border: 1px solid #d1d5db;
             border-radius: 14px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.06);
         }
-
-        .file-name {
-            margin-bottom: 7px;
-            font-size: 18px;
-            font-weight: 700;
-            word-break: break-all;
-        }
-
-        .file-url {
-            margin-bottom: 14px;
-            color: #6b7280;
-            font-size: 12px;
-            line-height: 1.5;
-            word-break: break-all;
-        }
-
-        .file-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
+        .file-name { margin-bottom: 7px; font-size: 18px; font-weight: 700; word-break: break-all; }
+        .file-url { margin-bottom: 14px; color: #6b7280; font-size: 12px; line-height: 1.5; word-break: break-all; }
+        .file-actions { display: flex; flex-wrap: wrap; gap: 10px; }
         button {
             min-height: 46px;
             padding: 10px 18px;
@@ -115,123 +49,43 @@
             font-weight: 600;
             cursor: pointer;
         }
-
-        button:hover:not(:disabled) {
-            background: #1d4ed8;
-        }
-
-        button:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-
-        .secondary-button {
-            background: #374151;
-        }
-
-        .secondary-button:hover:not(:disabled) {
-            background: #1f2937;
-        }
-
-        .save-button {
-            display: none;
-            background: #047857;
-        }
-
-        .save-button:hover:not(:disabled) {
-            background: #065f46;
-        }
-
-        .consent-button {
-            background: #059669;
-        }
-
-        .consent-button:hover:not(:disabled) {
-            background: #047857;
-        }
-
-        .consent-button:disabled {
-            background: #9ca3af;
-        }
-
-        progress {
-            display: none;
-            width: 100%;
-            height: 19px;
-            margin-top: 15px;
-        }
-
-        .status {
-            min-height: 25px;
-            margin-top: 12px;
-            color: #374151;
-            line-height: 1.6;
-            word-break: break-word;
-        }
-
-        .success {
-            color: #047857;
-            font-weight: 600;
-        }
-
-        .error {
-            color: #dc2626;
-            font-weight: 600;
-        }
-
-        .warning {
-            color: #92400e;
-            font-weight: 600;
-        }
-
-        .info {
-            color: #1e40af;
-            font-weight: 600;
-        }
-
+        button:hover:not(:disabled) { background: #1d4ed8; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        .secondary-button { background: #374151; }
+        .secondary-button:hover:not(:disabled) { background: #1f2937; }
+        .save-button { display: none; background: #047857; }
+        .save-button:hover:not(:disabled) { background: #065f46; }
+        .consent-button { background: #059669; }
+        .consent-button:hover:not(:disabled) { background: #047857; }
+        .consent-button:disabled { background: #9ca3af; }
+        .danger-button { background: #dc2626; }
+        .danger-button:hover:not(:disabled) { background: #b91c1c; }
+        progress { display: none; width: 100%; height: 19px; margin-top: 15px; }
+        .status { min-height: 25px; margin-top: 12px; color: #374151; line-height: 1.6; word-break: break-word; }
+        .success { color: #047857; font-weight: 600; }
+        .error { color: #dc2626; font-weight: 600; }
+        .warning { color: #92400e; font-weight: 600; }
+        .info { color: #1e40af; font-weight: 600; }
         .upload-panel {
             margin-top: 24px;
             padding: 18px;
             background: #ffffff;
             border: 1px solid #d1d5db;
             border-radius: 14px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.06);
         }
-
-        .upload-panel-title {
-            margin: 0 0 8px;
-            font-size: 19px;
-            font-weight: 700;
-        }
-
-        .upload-panel-description {
-            margin: 0;
-            color: #4b5563;
-            line-height: 1.6;
-        }
-
+        .upload-panel-title { margin: 0 0 8px; font-size: 19px; font-weight: 700; }
+        .upload-panel-description { margin: 0; color: #4b5563; line-height: 1.6; }
         .consent-panel {
             margin-top: 20px;
             padding: 18px;
             background: #fffbeb;
             border: 2px solid #f59e0b;
             border-radius: 14px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.06);
         }
-
-        .consent-panel-title {
-            margin: 0 0 8px;
-            font-size: 19px;
-            font-weight: 700;
-            color: #92400e;
-        }
-
-        .consent-panel-description {
-            margin: 0 0 15px;
-            color: #78350f;
-            line-height: 1.6;
-        }
-
+        .consent-panel-title { margin: 0 0 8px; font-size: 19px; font-weight: 700; color: #92400e; }
+        .consent-panel-description { margin: 0 0 15px; color: #78350f; line-height: 1.6; }
         .consent-status {
             margin-top: 12px;
             padding: 12px;
@@ -239,65 +93,50 @@
             border-radius: 8px;
             font-size: 14px;
             line-height: 1.6;
+            white-space: pre-line;
         }
-
         .api-info {
             margin-top: 20px;
             padding: 14px;
-            background: #f0fdf4;
-            border: 1px solid #86efac;
             border-radius: 10px;
-            color: #166534;
             line-height: 1.6;
             font-size: 14px;
         }
-
-        .api-info.warning {
-            background: #fffbeb;
-            border-color: #fcd34d;
-            color: #92400e;
+        .api-info.success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+        .api-info.warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+        .api-info.error { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+        .hidden { display: none !important; }
+        .ip-input-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+            align-items: center;
         }
-
-        .api-info.success {
-            background: #f0fdf4;
-            border-color: #86efac;
-            color: #166534;
+        .ip-input-group input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #ffffff;
         }
-
-        .api-info.error {
-            background: #fef2f2;
-            border-color: #fca5a5;
-            color: #991b1b;
+        .ip-input-group input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
-
-        .hidden {
-            display: none !important;
-        }
-
         @media (max-width: 600px) {
-            body {
-                padding: 14px;
-            }
-
-            .file-card {
-                padding: 15px;
-            }
-
-            .file-actions {
-                display: block;
-            }
-
-            button {
-                width: 100%;
-            }
-
-            .file-actions button + button {
-                margin-top: 10px;
-            }
+            body { padding: 14px; }
+            .file-card { padding: 15px; }
+            .file-actions { display: block; }
+            button { width: 100%; }
+            .file-actions button + button { margin-top: 10px; }
+            .ip-input-group input { min-width: 100%; }
         }
     </style>
 </head>
-
 <body>
 <div class="container">
     <h1>檔案下載速度測試</h1>
@@ -317,98 +156,74 @@
         <h2 class="consent-panel-title">🔒 連接內聯網伺服器</h2>
 
         <p class="consent-panel-description">
-            iOS Safari 對內聯網（如 923test.local）有額外的私隱保護，
-            需要您手動同意才能傳送測速紀錄。
-            請點擊下方按鈕，然後在彈出的對話框中選擇「允許」。
+            iOS Safari 對內聯網域名（如 923test.local）有額外的私隱保護。
+            請嘗試以下方法之一來建立連接：
         </p>
 
-        <div class="toolbar">
-            <button
-                id="consent-button"
-                class="consent-button"
-                type="button"
-            >
-                ✅ 同意連接內聯網（按我）
-            </button>
+        <!-- 方法 1：手動輸入 IP -->
+        <div style="margin: 15px 0; padding: 12px; background: #f0f9ff; border-radius: 8px; border: 1px solid #7dd3fc;">
+            <strong>方法 1：</strong> 輸入內聯網伺服器 IP 地址
+            <div class="ip-input-group">
+                <input type="text" id="server-ip-input" placeholder="例如：192.168.1.100" value="923test.local">
+                <button id="set-ip-button" class="secondary-button" type="button" style="flex: 0 0 auto;">切換到這個 IP</button>
+            </div>
+            <div style="font-size: 13px; color: #6b7280; margin-top: 5px;">
+                💡 提示：在內聯網中，請用 IP 地址（如 192.168.x.x）代替域名
+            </div>
+        </div>
 
-            <button
-                id="test-connection-button"
-                class="secondary-button"
-                type="button"
-            >
-                🔄 測試連接
-            </button>
+        <div style="margin: 15px 0; padding: 12px; background: #fef3c7; border-radius: 8px; border: 1px solid #fcd34d;">
+            <strong>方法 2：</strong> 點擊下方按鈕觸發連接
+            <div class="toolbar" style="margin-top: 10px;">
+                <button id="consent-button" class="consent-button" type="button">
+                    ✅ 同意連接內聯網
+                </button>
+                <button id="iframe-consent-button" class="consent-button" type="button">
+                    📄 用 iframe 觸發連接
+                </button>
+                <button id="test-connection-button" class="secondary-button" type="button">
+                    🔄 測試連接
+                </button>
+            </div>
         </div>
 
         <div id="consent-status" class="consent-status">
-            ⏳ 尚未連接。請點擊「同意連接內聯網」按鈕。
+            ⏳ 尚未連接。請嘗試以上方法。
         </div>
     </section>
 
     <section class="average-panel">
-        <div class="average-title">
-            本頁測速平均
-        </div>
-
-        <div id="overall-average" class="average-value">
-            尚未完成任何測速
-        </div>
+        <div class="average-title">本頁測速平均</div>
+        <div id="overall-average" class="average-value">尚未完成任何測速</div>
     </section>
 
     <div id="file-list"></div>
 
     <section class="upload-panel">
-        <h2 class="upload-panel-title">
-            測速紀錄上傳
-        </h2>
-
+        <h2 class="upload-panel-title">測速紀錄上傳</h2>
         <p class="upload-panel-description">
             下載及測速完成後，紀錄會先儲存在此瀏覽器。
             請按下「上傳紀錄」傳送到 Server。
         </p>
-
-        <div id="upload-status" class="status">
-            速度紀錄：檢查中……
-        </div>
-
+        <div id="upload-status" class="status">速度紀錄：檢查中……</div>
         <div class="toolbar">
-            <button
-                id="upload-records"
-                class="secondary-button"
-                type="button"
-                disabled
-            >
-                上傳紀錄
-            </button>
-
-            <button
-                id="reset-results"
-                class="secondary-button"
-                type="button"
-            >
-                清除畫面結果
-            </button>
+            <button id="upload-records" class="secondary-button" type="button" disabled>上傳紀錄</button>
+            <button id="reset-results" class="secondary-button" type="button">清除畫面結果</button>
         </div>
     </section>
 
-    <div id="api-info" class="api-info">
-        連接狀態：偵測中……
-    </div>
+    <div id="api-info" class="api-info warning">連接狀態：偵測中……</div>
 
-    <div class="warning">
+    <div class="warning" style="margin-top:20px;padding:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;color:#92400e;line-height:1.6;">
         此網頁使用 JavaScript Fetch 讀取外部下載網址。
         如果外部伺服器不允許跨來源存取（CORS），
-        瀏覽器可能會阻止測速，並顯示
-        「Failed to fetch」或 CORS 錯誤。
+        瀏覽器可能會阻止測速，並顯示「Failed to fetch」或 CORS 錯誤。
     </div>
 </div>
 
 <script>
 /* =====================================================================
- * 測試及 Server 紀錄設定
- *
- * 以下資料不會顯示於畫面，
- * 但仍會隨測速紀錄傳送至 Server。
+ * 設定
  * ===================================================================== */
 
 const BANDWIDTH_LIMIT_MBPS = 12;
@@ -422,40 +237,38 @@ const GRADE_RULES = [
 ];
 
 /* =====================================================================
- * API 網址設定 - 自動適應內聯網環境
+ * API 網址設定 - 可手動切換
  * ===================================================================== */
 
-// 取得當前頁面的主機名稱和協定
+// 預設伺服器地址
+let serverHost = localStorage.getItem('cvent_server_host') || '923test.local';
+let serverProtocol = 'http:';
+
+// 取得當前頁面資訊
 const currentHost = window.location.hostname;
 const currentProtocol = window.location.protocol;
 
-// 判斷是否在內聯網環境（923test.local）
-const isIntranet = currentHost === '923test.local' || currentHost === 'localhost' || currentHost === '127.0.0.1';
+// 如果當前頁面已經是內聯網，使用當前設定
+if (currentHost === '923test.local' || currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    serverHost = currentHost;
+    serverProtocol = currentProtocol;
+}
 
-// 動態設定 API 網址
-const API_URL = (() => {
-    // 如果在內聯網，使用相對路徑（同源）
-    if (isIntranet) {
-        return '/api/download-results';
-    }
-    
-    // 如果從 GitHub Pages 訪問，嘗試連接到內聯網
-    if (currentProtocol === 'https:') {
-        return 'https://923test.local/api/download-results';
-    }
-    return 'http://923test.local/api/download-results';
-})();
+// 構建 API 網址
+function getAPIUrl() {
+    return serverProtocol + '//' + serverHost + '/api/download-results';
+}
 
-// 健康檢查網址
-const HEALTH_URL = (() => {
-    if (isIntranet) {
-        return '/api/health';
-    }
-    if (currentProtocol === 'https:') {
-        return 'https://923test.local/api/health';
-    }
-    return 'http://923test.local/api/health';
-})();
+function getHealthUrl() {
+    return serverProtocol + '//' + serverHost + '/api/health';
+}
+
+// 儲存伺服器設定
+function setServerHost(host) {
+    serverHost = host;
+    localStorage.setItem('cvent_server_host', host);
+    updateApiInfo();
+}
 
 /* =====================================================================
  * 下載網址清單
@@ -492,177 +305,88 @@ const files = [
     }
 ];
 
-/* ===================================================================== */
+/* =====================================================================
+ * DOM 元素
+ * ===================================================================== */
 
 const PENDING_KEY = "cvent_pending_download_records_v1";
 const CONSENT_KEY = "cvent_consent_granted_v1";
 
-const fileList =
-    document.getElementById("file-list");
-
-const uploadStatus =
-    document.getElementById("upload-status");
-
-const uploadButton =
-    document.getElementById("upload-records");
-
-const resetButton =
-    document.getElementById("reset-results");
-
-const overallAverage =
-    document.getElementById("overall-average");
-
-const consentButton =
-    document.getElementById("consent-button");
-
-const testConnectionButton =
-    document.getElementById("test-connection-button");
-
-const consentStatus =
-    document.getElementById("consent-status");
-
-const consentPanel =
-    document.getElementById("consent-panel");
-
-const apiInfo =
-    document.getElementById("api-info");
+const fileList = document.getElementById("file-list");
+const uploadStatus = document.getElementById("upload-status");
+const uploadButton = document.getElementById("upload-records");
+const resetButton = document.getElementById("reset-results");
+const overallAverage = document.getElementById("overall-average");
+const consentButton = document.getElementById("consent-button");
+const iframeConsentButton = document.getElementById("iframe-consent-button");
+const testConnectionButton = document.getElementById("test-connection-button");
+const consentStatus = document.getElementById("consent-status");
+const consentPanel = document.getElementById("consent-panel");
+const apiInfo = document.getElementById("api-info");
+const serverIpInput = document.getElementById("server-ip-input");
+const setIpButton = document.getElementById("set-ip-button");
 
 const fileElements = [];
-
-/*
- * 儲存本頁成功完成的測速。
- * 此陣列只用來計算畫面平均，不會上傳至 Server。
- */
 const completedSpeeds = [];
 
 let uploadRunning = false;
 let consentGranted = false;
 let isTestingConnection = false;
-
-/*
- * 全頁測速鎖。
- *
- * 同一時間只允許一個測速，避免 iOS 同時執行多個 Fetch，
- * 導致其中一個請求被瀏覽器取消。
- */
 let downloadRunning = false;
 
+// 隱藏的 iframe 用於觸發連接
+let consentIframe = null;
+
+/* =====================================================================
+ * 工具函數
+ * ===================================================================== */
+
 function newID() {
-    if (
-        window.crypto &&
-        typeof window.crypto.randomUUID === "function"
-    ) {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
         return window.crypto.randomUUID();
     }
-
-    return (
-        Date.now().toString(36) +
-        "-" +
-        Math.random().toString(36).substring(2)
-    );
+    return Date.now().toString(36) + "-" + Math.random().toString(36).substring(2);
 }
 
-let sessionID =
-    sessionStorage.getItem("cvent_session_id");
-
+let sessionID = sessionStorage.getItem("cvent_session_id");
 if (!sessionID) {
     sessionID = newID();
-
-    sessionStorage.setItem(
-        "cvent_session_id",
-        sessionID
-    );
+    sessionStorage.setItem("cvent_session_id", sessionID);
 }
 
 function gradeSpeed(averageMbps) {
-    const percent =
-        averageMbps /
-        BANDWIDTH_LIMIT_MBPS *
-        100;
-
-    const rule =
-        GRADE_RULES.find(
-            item => percent >= item.minPercent
-        ) ||
-        GRADE_RULES[GRADE_RULES.length - 1];
-
-    return {
-        percent: Number(percent.toFixed(1)),
-        grade: rule.grade
-    };
+    const percent = (averageMbps / BANDWIDTH_LIMIT_MBPS) * 100;
+    const rule = GRADE_RULES.find(item => percent >= item.minPercent) || GRADE_RULES[GRADE_RULES.length - 1];
+    return { percent: Number(percent.toFixed(1)), grade: rule.grade };
 }
 
 function formatBytes(bytes) {
-    if (!Number.isFinite(bytes) || bytes < 0) {
-        return "未知";
-    }
-
+    if (!Number.isFinite(bytes) || bytes < 0) return "未知";
     const units = ["B", "KB", "MB", "GB", "TB"];
-
     let value = bytes;
     let index = 0;
-
-    while (
-        value >= 1024 &&
-        index < units.length - 1
-    ) {
+    while (value >= 1024 && index < units.length - 1) {
         value /= 1024;
         index++;
     }
-
-    return (
-        value.toFixed(index === 0 ? 0 : 2) +
-        " " +
-        units[index]
-    );
+    return value.toFixed(index === 0 ? 0 : 2) + " " + units[index];
 }
 
-function pad(value) {
-    return String(value).padStart(2, "0");
-}
+function pad(value) { return String(value).padStart(2, "0"); }
 
 function createUniqueFilename(originalName) {
     const dot = originalName.lastIndexOf(".");
-
-    const base =
-        dot > 0
-            ? originalName.substring(0, dot)
-            : originalName;
-
-    const extension =
-        dot > 0
-            ? originalName.substring(dot)
-            : "";
-
+    const base = dot > 0 ? originalName.substring(0, dot) : originalName;
+    const extension = dot > 0 ? originalName.substring(dot) : "";
     const now = new Date();
-
-    const timestamp =
-        now.getFullYear() +
-        pad(now.getMonth() + 1) +
-        pad(now.getDate()) +
-        "-" +
-        pad(now.getHours()) +
-        pad(now.getMinutes()) +
-        pad(now.getSeconds());
-
-    return (
-        base +
-        "_" +
-        timestamp +
-        "_" +
-        newID().substring(0, 8) +
-        extension
-    );
+    const timestamp = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) +
+                     "-" + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+    return base + "_" + timestamp + "_" + newID().substring(0, 8) + extension;
 }
 
 function createNoCacheURL(originalURL) {
     const url = new URL(originalURL);
-
-    url.searchParams.set(
-        "_nocache",
-        newID()
-    );
-
+    url.searchParams.set("_nocache", newID());
     return url.toString();
 }
 
@@ -671,138 +395,110 @@ function createNoCacheURL(originalURL) {
  * ===================================================================== */
 
 function updateConsentStatus(message, type = "info") {
-    const statusMap = {
-        info: 'ℹ️',
-        success: '✅',
-        error: '❌',
-        warning: '⚠️'
-    };
-
-    const icon = statusMap[type] || 'ℹ️';
-    consentStatus.textContent = icon + ' ' + message;
+    const icons = { info: 'ℹ️', success: '✅', error: '❌', warning: '⚠️' };
+    consentStatus.textContent = (icons[type] || 'ℹ️') + ' ' + message;
     consentStatus.className = 'consent-status ' + type;
 }
 
-function updateApiInfo(status, message) {
+function updateApiInfo() {
+    const url = getAPIUrl();
+    const healthUrl = getHealthUrl();
+    const status = consentGranted ? 'success' : 'warning';
+    const msg = consentGranted ? 
+        '✅ 已連接至 ' + url :
+        '⚠️ 尚未連接。請先同意連接內聯網。伺服器：' + serverHost;
+    
     apiInfo.className = 'api-info ' + status;
-    apiInfo.textContent = message;
+    apiInfo.textContent = msg + ' | 健康檢查：' + healthUrl;
+    
+    // 更新輸入框
+    serverIpInput.value = serverHost;
 }
 
 function setConsentGranted(granted) {
     consentGranted = granted;
-
     if (granted) {
         localStorage.setItem(CONSENT_KEY, 'true');
         consentButton.disabled = true;
         consentButton.textContent = '✅ 已同意連接';
+        iframeConsentButton.disabled = true;
+        iframeConsentButton.textContent = '✅ 已同意連接';
         uploadButton.disabled = false;
         consentPanel.style.borderColor = '#86efac';
         consentPanel.style.background = '#f0fdf4';
         updateConsentStatus('已同意連接內聯網。可以上傳測速紀錄。', 'success');
-        updateApiInfo('success', '✅ 已連接至 ' + API_URL);
     } else {
         localStorage.removeItem(CONSENT_KEY);
         consentButton.disabled = false;
-        consentButton.textContent = '✅ 同意連接內聯網（按我）';
+        consentButton.textContent = '✅ 同意連接內聯網';
+        iframeConsentButton.disabled = false;
+        iframeConsentButton.textContent = '📄 用 iframe 觸發連接';
         uploadButton.disabled = true;
         consentPanel.style.borderColor = '#f59e0b';
         consentPanel.style.background = '#fffbeb';
-        updateConsentStatus('尚未連接。請點擊「同意連接內聯網」按鈕。', 'warning');
-        updateApiInfo('warning', '⚠️ 尚未連接內聯網。請先同意連接。');
+        updateConsentStatus('尚未連接。請嘗試以上方法。', 'warning');
     }
+    updateApiInfo();
 }
 
-// 檢查是否已儲存同意
 function checkStoredConsent() {
-    const stored = localStorage.getItem(CONSENT_KEY);
-    if (stored === 'true') {
+    if (localStorage.getItem(CONSENT_KEY) === 'true') {
         setConsentGranted(true);
         return true;
     }
     return false;
 }
 
-// 觸發 iOS Safari 的內聯網同意對話框
+/* =====================================================================
+ * 方法 1：Fetch 請求觸發同意
+ * ===================================================================== */
+
 async function requestConsent() {
-    if (consentGranted) {
-        return true;
-    }
+    if (consentGranted) return true;
 
     updateConsentStatus('正在嘗試連接內聯網…請稍候', 'info');
     consentButton.disabled = true;
 
     try {
-        // 方法 1：嘗試 fetch 請求（iOS Safari 會顯示同意對話框）
-        const response = await fetch(HEALTH_URL, {
+        const url = getHealthUrl() + '?_=' + Date.now();
+        
+        const response = await fetch(url, {
             method: 'GET',
             cache: 'no-store',
             credentials: 'same-origin',
-            headers: {
-                'Accept': 'application/json'
-            }
+            headers: { 'Accept': 'application/json' }
         });
 
         if (response.ok) {
             setConsentGranted(true);
             return true;
         } else {
-            throw new Error('伺服器回應異常：' + response.status);
+            throw new Error('伺服器回應：' + response.status);
         }
     } catch (error) {
-        console.error('連接請求失敗：', error);
-
-        // 方法 2：嘗試使用 Image 對象（較輕量）
+        console.error('連接失敗：', error);
+        
+        // 如果 fetch 失敗，嘗試用 Image 對象
         try {
             await new Promise((resolve, reject) => {
                 const img = new Image();
                 const timeout = setTimeout(() => {
                     img.src = '';
-                    reject(new Error('圖片請求逾時'));
+                    reject(new Error('逾時'));
                 }, 5000);
-
-                img.onload = () => {
-                    clearTimeout(timeout);
-                    resolve();
-                };
-
-                img.onerror = () => {
-                    clearTimeout(timeout);
-                    reject(new Error('圖片請求失敗'));
-                };
-
-                // 使用一個小型圖片或 favicon
-                img.src = HEALTH_URL + '?_=' + Date.now();
+                img.onload = () => { clearTimeout(timeout); resolve(); };
+                img.onerror = () => { clearTimeout(timeout); reject(new Error('圖片載入失敗')); };
+                img.src = getHealthUrl() + '?_=' + Date.now();
             });
-
             setConsentGranted(true);
             return true;
         } catch (imgError) {
-            console.error('圖片連接失敗：', imgError);
-            
-            // 方法 3：使用 navigator.sendBeacon（部分瀏覽器支援）
-            try {
-                const blob = new Blob(['ping'], { type: 'text/plain' });
-                const sent = navigator.sendBeacon(HEALTH_URL + '?_=' + Date.now(), blob);
-                
-                if (sent) {
-                    setConsentGranted(true);
-                    return true;
-                }
-            } catch (beaconError) {
-                console.error('Beacon 發送失敗：', beaconError);
-            }
-
-            // 所有方法都失敗
-            const errorMsg = error.message || String(error);
-            if (errorMsg.includes('Failed to fetch') || errorMsg.includes('Load failed')) {
-                updateConsentStatus(
-                    '連接失敗。請確認：\n1. 您已連接內聯網（923test.local）\n2. 伺服器正在執行\n3. 在彈出的對話框中選擇「允許」\n\n錯誤：' + errorMsg,
-                    'error'
-                );
-            } else {
-                updateConsentStatus('連接失敗：' + errorMsg, 'error');
-            }
-
+            // 兩種方法都失敗
+            const msg = error.message || String(error);
+            updateConsentStatus(
+                '連接失敗。請嘗試：\n1. 確認內聯網連接正常\n2. 使用 IP 地址代替域名\n3. 點擊「用 iframe 觸發連接」\n\n錯誤：' + msg,
+                'error'
+            );
             consentButton.disabled = false;
             return false;
         }
@@ -811,21 +507,86 @@ async function requestConsent() {
     }
 }
 
-// 測試連接
-async function testConnection() {
-    if (isTestingConnection) {
-        return;
+/* =====================================================================
+ * 方法 2：iframe 觸發同意
+ * ===================================================================== */
+
+function triggerConsentWithIframe() {
+    if (consentGranted) return;
+
+    updateConsentStatus('正在用 iframe 觸發連接…', 'info');
+    iframeConsentButton.disabled = true;
+
+    // 移除舊的 iframe
+    if (consentIframe) {
+        consentIframe.remove();
+        consentIframe = null;
     }
+
+    // 創建新的 iframe
+    consentIframe = document.createElement('iframe');
+    consentIframe.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
+    consentIframe.src = getHealthUrl() + '?_=' + Date.now();
+    
+    // 監聽 iframe 加載完成
+    consentIframe.onload = () => {
+        setTimeout(() => {
+            // 嘗試用 fetch 確認連接
+            fetch(getHealthUrl() + '?_=' + Date.now(), {
+                method: 'GET',
+                cache: 'no-store',
+                credentials: 'same-origin'
+            })
+            .then(res => {
+                if (res.ok) {
+                    setConsentGranted(true);
+                } else {
+                    updateConsentStatus('iframe 載入完成，但伺服器回應異常', 'warning');
+                    iframeConsentButton.disabled = false;
+                }
+            })
+            .catch(() => {
+                updateConsentStatus('iframe 載入完成，但連接測試失敗', 'warning');
+                iframeConsentButton.disabled = false;
+            });
+        }, 500);
+    };
+
+    consentIframe.onerror = () => {
+        updateConsentStatus('iframe 載入失敗', 'error');
+        iframeConsentButton.disabled = false;
+    };
+
+    document.body.appendChild(consentIframe);
+
+    // 5 秒後自動移除 iframe（如果還沒觸發）
+    setTimeout(() => {
+        if (consentIframe && !consentGranted) {
+            consentIframe.remove();
+            consentIframe = null;
+            iframeConsentButton.disabled = false;
+            updateConsentStatus('iframe 載入逾時，請重試', 'warning');
+        }
+    }, 5000);
+}
+
+/* =====================================================================
+ * 測試連接
+ * ===================================================================== */
+
+async function testConnection() {
+    if (isTestingConnection) return;
 
     isTestingConnection = true;
     testConnectionButton.disabled = true;
     updateConsentStatus('正在測試連接…', 'info');
 
     try {
+        const url = getHealthUrl() + '?_=' + Date.now();
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
 
-        const response = await fetch(HEALTH_URL, {
+        const response = await fetch(url, {
             method: 'GET',
             cache: 'no-store',
             credentials: 'same-origin',
@@ -836,39 +597,51 @@ async function testConnection() {
 
         if (response.ok) {
             const data = await response.json().catch(() => ({}));
-            updateConsentStatus(
-                '✅ 連接成功！伺服器回應正常。' + 
-                (data.status ? ' 狀態：' + data.status : ''),
-                'success'
-            );
-            updateApiInfo('success', '✅ 已連接到 ' + HEALTH_URL + '，伺服器正常');
-            
-            if (!consentGranted) {
-                setConsentGranted(true);
-            }
+            updateConsentStatus('✅ 連接成功！伺服器：' + serverHost + '，狀態：' + (data.status || '正常'), 'success');
+            if (!consentGranted) setConsentGranted(true);
         } else {
-            updateConsentStatus(
-                '⚠️ 伺服器回應異常：HTTP ' + response.status,
-                'error'
-            );
-            updateApiInfo('error', '⚠️ 伺服器回應異常：HTTP ' + response.status);
+            updateConsentStatus('⚠️ 伺服器回應：HTTP ' + response.status, 'error');
         }
     } catch (error) {
-        console.error('測試連接失敗：', error);
-        
-        let message = error.message || String(error);
-        if (error.name === 'AbortError') {
-            message = '連接逾時（5秒）';
-        } else if (message.includes('Failed to fetch') || message.includes('Load failed')) {
-            message = '無法連接，可能是 CORS 或網路問題。請點擊「同意連接內聯網」按鈕。';
+        let msg = error.message || String(error);
+        if (error.name === 'AbortError') msg = '連接逾時（5秒）';
+        if (msg.includes('Failed to fetch') || msg.includes('Load failed')) {
+            msg = '無法連接。請確認伺服器地址正確，或使用 IP 地址代替域名。';
         }
-        
-        updateConsentStatus('❌ 連接失敗：' + message, 'error');
-        updateApiInfo('error', '❌ 無法連接到 ' + HEALTH_URL + '：' + message);
+        updateConsentStatus('❌ 連接失敗：' + msg, 'error');
     } finally {
         isTestingConnection = false;
         testConnectionButton.disabled = false;
     }
+}
+
+/* =====================================================================
+ * 切換伺服器 IP
+ * ===================================================================== */
+
+function switchServer() {
+    const newHost = serverIpInput.value.trim();
+    if (!newHost) {
+        alert('請輸入伺服器地址（IP 或域名）');
+        return;
+    }
+    
+    // 如果用戶輸入的是 IP，確保使用 http
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(newHost)) {
+        serverProtocol = 'http:';
+    } else {
+        serverProtocol = 'http:'; // 內聯網預設用 http
+    }
+    
+    setServerHost(newHost);
+    
+    // 重置同意狀態（因為換了伺服器）
+    setConsentGranted(false);
+    
+    updateConsentStatus('已切換到：' + newHost + '，請重新連接', 'info');
+    
+    // 自動測試連接
+    setTimeout(() => testConnection(), 500);
 }
 
 /* =====================================================================
@@ -877,42 +650,18 @@ async function testConnection() {
 
 function updateOverallAverage() {
     if (completedSpeeds.length === 0) {
-        overallAverage.textContent =
-            "尚未完成任何測速";
-
+        overallAverage.textContent = "尚未完成任何測速";
         return;
     }
-
-    const totalMbps =
-        completedSpeeds.reduce(
-            (sum, speed) => sum + speed,
-            0
-        );
-
-    const averageMbps =
-        totalMbps / completedSpeeds.length;
-
-    const averageMBps =
-        averageMbps / 8;
-
-    overallAverage.textContent =
-        "已完成 " +
-        completedSpeeds.length +
-        " 次｜平均 " +
-        averageMBps.toFixed(2) +
-        " MB/s（" +
-        averageMbps.toFixed(2) +
-        " Mbps）";
+    const totalMbps = completedSpeeds.reduce((sum, speed) => sum + speed, 0);
+    const averageMbps = totalMbps / completedSpeeds.length;
+    const averageMBps = averageMbps / 8;
+    overallAverage.textContent = "已完成 " + completedSpeeds.length + 
+        " 次｜平均 " + averageMBps.toFixed(2) + " MB/s（" + averageMbps.toFixed(2) + " Mbps）";
 }
 
 function addCompletedSpeed(averageMbps) {
-    if (
-        !Number.isFinite(averageMbps) ||
-        averageMbps < 0
-    ) {
-        return;
-    }
-
+    if (!Number.isFinite(averageMbps) || averageMbps < 0) return;
     completedSpeeds.push(averageMbps);
     updateOverallAverage();
 }
@@ -923,35 +672,19 @@ function addCompletedSpeed(averageMbps) {
 
 function getPendingRecords() {
     try {
-        const records = JSON.parse(
-            localStorage.getItem(PENDING_KEY) || "[]"
-        );
-
-        return Array.isArray(records)
-            ? records
-            : [];
-    } catch (_) {
-        return [];
-    }
+        const records = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+        return Array.isArray(records) ? records : [];
+    } catch (_) { return []; }
 }
 
 function savePendingRecords(records) {
-    localStorage.setItem(
-        PENDING_KEY,
-        JSON.stringify(records)
-    );
-
+    localStorage.setItem(PENDING_KEY, JSON.stringify(records));
     updateUploadStatus();
 }
 
 function queueRecord(record) {
     const records = getPendingRecords();
-
-    const alreadyExists = records.some(
-        item => item.record_id === record.record_id
-    );
-
-    if (!alreadyExists) {
+    if (!records.some(item => item.record_id === record.record_id)) {
         records.push(record);
         savePendingRecords(records);
     }
@@ -959,40 +692,25 @@ function queueRecord(record) {
 
 function updateUploadStatus(message = "") {
     const count = getPendingRecords().length;
-
     if (message) {
-        uploadStatus.textContent =
-            message +
-            "｜未上傳紀錄：" +
-            count +
-            " 筆";
-
+        uploadStatus.textContent = message + "｜未上傳紀錄：" + count + " 筆";
         return;
     }
-
     if (count === 0) {
-        uploadStatus.className =
-            "status success";
-
-        uploadStatus.textContent =
-            "目前沒有等待上傳的速度紀錄";
+        uploadStatus.className = "status success";
+        uploadStatus.textContent = "目前沒有等待上傳的速度紀錄";
     } else {
-        uploadStatus.className =
-            "status";
-
-        uploadStatus.textContent =
-            "等待手動上傳至 Server 的紀錄：" +
-            count +
-            " 筆";
+        uploadStatus.className = "status";
+        uploadStatus.textContent = "等待手動上傳至 Server 的紀錄：" + count + " 筆";
     }
 }
 
-async function flushPendingRecords() {
-    if (uploadRunning) {
-        return;
-    }
+/* =====================================================================
+ * 上傳紀錄
+ * ===================================================================== */
 
-    // 檢查是否已獲得同意
+async function flushPendingRecords() {
+    if (uploadRunning) return;
     if (!consentGranted) {
         uploadStatus.className = "status error";
         uploadStatus.textContent = "⚠️ 請先點擊「同意連接內聯網」按鈕才能上傳";
@@ -1000,7 +718,6 @@ async function flushPendingRecords() {
     }
 
     const records = getPendingRecords();
-
     if (records.length === 0) {
         updateUploadStatus();
         return;
@@ -1008,121 +725,52 @@ async function flushPendingRecords() {
 
     uploadRunning = true;
     uploadButton.disabled = true;
-
     uploadStatus.className = "status";
     updateUploadStatus("正在上傳");
 
-    const sentIDs = new Set(
-        records.map(record => record.record_id)
-    );
-
-    const controller =
-        new AbortController();
-
-    const timeout = setTimeout(() => {
-        controller.abort();
-    }, 8000);
+    const sentIDs = new Set(records.map(r => r.record_id));
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     try {
-        const response = await fetch(API_URL, {
+        const response = await fetch(getAPIUrl(), {
             method: "POST",
             cache: "no-store",
             credentials: "same-origin",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                records
-            }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ records }),
             signal: controller.signal
         });
 
         if (!response.ok) {
-            const allow =
-                response.headers.get("Allow");
-
+            const allow = response.headers.get("Allow");
             let serverMessage = "";
-
-            try {
-                serverMessage =
-                    (await response.text()).trim();
-            } catch (_) {
-                // 無法讀取 Server 回應內容
-            }
-
+            try { serverMessage = (await response.text()).trim(); } catch (_) {}
             if (response.status === 405) {
-                throw new Error(
-                    "HTTP 405：Server 不允許使用 POST 方法" +
-                    (
-                        allow
-                            ? "（允許方法：" + allow + "）"
-                            : ""
-                    ) +
-                    "。請檢查 /api/download-results 的 Nginx 或後端設定"
-                );
+                throw new Error("HTTP 405：Server 不允許 POST" + (allow ? "（允許：" + allow + "）" : ""));
             }
-
-            throw new Error(
-                "HTTP " +
-                response.status +
-                (
-                    serverMessage
-                        ? "：" + serverMessage.substring(0, 200)
-                        : ""
-                )
-            );
+            throw new Error("HTTP " + response.status + (serverMessage ? "：" + serverMessage.substring(0, 200) : ""));
         }
 
-        const remaining =
-            getPendingRecords().filter(
-                record => {
-                    return !sentIDs.has(
-                        record.record_id
-                    );
-                }
-            );
-
+        const remaining = getPendingRecords().filter(r => !sentIDs.has(r.record_id));
         savePendingRecords(remaining);
 
-        uploadStatus.className =
-            "status success";
-
-        updateUploadStatus(
-            "成功上傳 " +
-            records.length +
-            " 筆紀錄"
-        );
+        uploadStatus.className = "status success";
+        updateUploadStatus("成功上傳 " + records.length + " 筆紀錄");
     } catch (error) {
-        console.error(
-            "紀錄上傳失敗：",
-            error
-        );
-
-        let message =
-            error.message || String(error);
-
-        if (error.name === "AbortError") {
-            message = "連線逾時";
-        }
-
-        // 如果上傳失敗，可能是同意過期，嘗試重新取得同意
-        if (message.includes('Failed to fetch') || message.includes('Load failed')) {
+        console.error("上傳失敗：", error);
+        let msg = error.message || String(error);
+        if (error.name === "AbortError") msg = "連線逾時";
+        if (msg.includes('Failed to fetch') || msg.includes('Load failed')) {
             uploadStatus.className = "status error";
-            uploadStatus.textContent = 
-                "⚠️ 上傳失敗：無法連接到伺服器。請重新點擊「同意連接內聯網」按鈕。";
+            uploadStatus.textContent = "⚠️ 上傳失敗：無法連接伺服器。請重新點擊「同意連接內聯網」";
             setConsentGranted(false);
             return;
         }
-
-        uploadStatus.className =
-            "status error";
-
-        updateUploadStatus(
-            "上傳失敗：" + message
-        );
+        uploadStatus.className = "status error";
+        updateUploadStatus("上傳失敗：" + msg);
     } finally {
         clearTimeout(timeout);
-
         uploadRunning = false;
         uploadButton.disabled = false;
     }
@@ -1130,101 +778,46 @@ async function flushPendingRecords() {
 
 /* =====================================================================
  * 檔案儲存
- *
- * 測速完成時不會自動打開儲存視窗。
- * 使用者可自行點擊「儲存檔案（可選）」。
  * ===================================================================== */
 
 function clearPreparedFile(elements) {
-    if (elements.objectURL) {
-        URL.revokeObjectURL(
-            elements.objectURL
-        );
-    }
-
+    if (elements.objectURL) URL.revokeObjectURL(elements.objectURL);
     elements.objectURL = null;
     elements.downloadFilename = null;
-
-    elements.saveButton.style.display =
-        "none";
-
+    elements.saveButton.style.display = "none";
     elements.saveButton.disabled = true;
 }
 
-function prepareFileForSaving(
-    elements,
-    blob,
-    filename
-) {
+function prepareFileForSaving(elements, blob, filename) {
     clearPreparedFile(elements);
-
-    elements.objectURL =
-        URL.createObjectURL(blob);
-
-    elements.downloadFilename =
-        filename;
-
+    elements.objectURL = URL.createObjectURL(blob);
+    elements.downloadFilename = filename;
     elements.saveButton.disabled = false;
-
-    elements.saveButton.style.display =
-        "inline-block";
+    elements.saveButton.style.display = "inline-block";
 }
 
 function savePreparedFile(elements) {
-    if (
-        !elements.objectURL ||
-        !elements.downloadFilename
-    ) {
-        return;
-    }
-
-    const link =
-        document.createElement("a");
-
-    link.href =
-        elements.objectURL;
-
-    link.download =
-        elements.downloadFilename;
-
+    if (!elements.objectURL || !elements.downloadFilename) return;
+    const link = document.createElement("a");
+    link.href = elements.objectURL;
+    link.download = elements.downloadFilename;
     link.style.display = "none";
-
     document.body.appendChild(link);
     link.click();
     link.remove();
-
-    /*
-     * 不立即 revoke，避免 Android／iOS 尚未完成
-     * 下載處理時，object URL 已被刪除。
-     *
-     * URL 會在重新測試、清除畫面或離開頁面時釋放。
-     */
 }
 
 /* =====================================================================
  * 全頁測速鎖
  * ===================================================================== */
 
-function setDownloadButtonsLocked(
-    locked,
-    activeElements = null
-) {
+function setDownloadButtonsLocked(locked, activeElements = null) {
     fileElements.forEach(elements => {
         elements.button.disabled = locked;
-
         if (locked) {
-            if (elements === activeElements) {
-                elements.button.textContent =
-                    "下載中…";
-            } else {
-                elements.button.textContent =
-                    "等待目前測速完成";
-            }
+            elements.button.textContent = elements === activeElements ? "下載中…" : "等待目前測速完成";
         } else {
-            elements.button.textContent =
-                elements.hasRun
-                    ? "再次下載及測速"
-                    : "下載及測速";
+            elements.button.textContent = elements.hasRun ? "再次下載及測速" : "下載及測速";
         }
     });
 }
@@ -1233,40 +826,27 @@ function setDownloadButtonsLocked(
  * 建立 Server 紀錄
  * ===================================================================== */
 
-function createBaseRecord(
-    file,
-    startedAt
-) {
+function createBaseRecord(file, startedAt) {
     return {
         record_id: newID(),
         session_id: sessionID,
         batch_id: null,
-
         mode: "individual",
         file_index: file.linkNumber,
         file_name: file.name,
         file_label: file.label,
         source_url: file.url,
-
         status: "unknown",
         bytes: 0,
         elapsed_ms: 0,
         average_MBps: 0,
         average_mbps: 0,
-
-        /*
-         * 以下評級資料不顯示於網頁，
-         * 但仍會上傳到 Server。
-         */
         test_profile: TEST_PROFILE,
-        bandwidth_limit_mbps:
-            BANDWIDTH_LIMIT_MBPS,
+        bandwidth_limit_mbps: BANDWIDTH_LIMIT_MBPS,
         speed_ratio_percent: null,
         speed_grade: null,
-
         started_at: startedAt,
         finished_at: null,
-
         page_url: location.href,
         user_agent: navigator.userAgent
     };
@@ -1276,367 +856,128 @@ function createBaseRecord(
  * 下載及測速
  * ===================================================================== */
 
-async function downloadAndMeasure(
-    file,
-    elements
-) {
-    /*
-     * 若目前已有測速，直接忽略這次點擊。
-     * 不建立失敗紀錄。
-     */
-    if (downloadRunning) {
-        return;
-    }
+async function downloadAndMeasure(file, elements) {
+    if (downloadRunning) return;
 
     downloadRunning = true;
+    setDownloadButtonsLocked(true, elements);
 
-    setDownloadButtonsLocked(
-        true,
-        elements
-    );
-
-    const {
-        progress,
-        status
-    } = elements;
-
-    /*
-     * 如果同一卡片已有上一次測速的暫存檔案，
-     * 開始新測速前先釋放。
-     */
+    const { progress, status } = elements;
     clearPreparedFile(elements);
 
     progress.style.display = "block";
     progress.removeAttribute("value");
     progress.removeAttribute("max");
-
     status.className = "status";
-    status.textContent =
-        "正在連接下載 Server…";
+    status.textContent = "正在連接下載 Server…";
 
-    const startedAt =
-        new Date().toISOString();
-
-    const record =
-        createBaseRecord(
-            file,
-            startedAt
-        );
-
-    const startTime =
-        performance.now();
+    const startedAt = new Date().toISOString();
+    const record = createBaseRecord(file, startedAt);
+    const startTime = performance.now();
 
     let receivedBytes = 0;
     let reader = null;
 
     try {
-        const response = await fetch(
-            createNoCacheURL(file.url),
-            {
-                method: "GET",
-                mode: "cors",
-                cache: "no-store",
-                credentials: "omit",
-                redirect: "follow"
-            }
-        );
+        const response = await fetch(createNoCacheURL(file.url), {
+            method: "GET",
+            mode: "cors",
+            cache: "no-store",
+            credentials: "omit",
+            redirect: "follow"
+        });
 
-        if (!response.ok) {
-            throw new Error(
-                "HTTP " +
-                response.status +
-                " " +
-                response.statusText
-            );
-        }
+        if (!response.ok) throw new Error("HTTP " + response.status + " " + response.statusText);
+        if (!response.body) throw new Error("瀏覽器不支援串流下載");
 
-        if (!response.body) {
-            throw new Error(
-                "瀏覽器不支援串流下載"
-            );
-        }
+        const contentLength = Number(response.headers.get("Content-Length")) || 0;
+        if (contentLength > 0) { progress.max = contentLength; progress.value = 0; }
 
-        const contentLength =
-            Number(
-                response.headers.get(
-                    "Content-Length"
-                )
-            ) || 0;
-
-        if (contentLength > 0) {
-            progress.max = contentLength;
-            progress.value = 0;
-        }
-
-        reader =
-            response.body.getReader();
-
+        reader = response.body.getReader();
         const chunks = [];
         let lastUpdate = 0;
 
         while (true) {
-            const result =
-                await reader.read();
-
-            if (result.done) {
-                break;
-            }
+            const result = await reader.read();
+            if (result.done) break;
 
             chunks.push(result.value);
+            receivedBytes += result.value.byteLength;
 
-            receivedBytes +=
-                result.value.byteLength;
-
-            const currentTime =
-                performance.now();
-
-            if (
-                currentTime - lastUpdate >= 100
-            ) {
-                const seconds = Math.max(
-                    (
-                        currentTime -
-                        startTime
-                    ) / 1000,
-                    0.001
-                );
-
-                const MBps =
-                    receivedBytes /
-                    seconds /
-                    1_000_000;
-
-                const Mbps =
-                    receivedBytes *
-                    8 /
-                    seconds /
-                    1_000_000;
+            const currentTime = performance.now();
+            if (currentTime - lastUpdate >= 100) {
+                const seconds = Math.max((currentTime - startTime) / 1000, 0.001);
+                const MBps = receivedBytes / seconds / 1_000_000;
+                const Mbps = receivedBytes * 8 / seconds / 1_000_000;
 
                 if (contentLength > 0) {
-                    progress.value =
-                        receivedBytes;
-
-                    const percent =
-                        receivedBytes /
-                        contentLength *
-                        100;
-
-                    status.textContent =
-                        formatBytes(
-                            receivedBytes
-                        ) +
-                        " / " +
-                        formatBytes(
-                            contentLength
-                        ) +
-                        "｜" +
-                        percent.toFixed(1) +
-                        "%｜" +
-                        MBps.toFixed(2) +
-                        " MB/s｜" +
-                        Mbps.toFixed(2) +
-                        " Mbps";
+                    progress.value = receivedBytes;
+                    const percent = (receivedBytes / contentLength) * 100;
+                    status.textContent = formatBytes(receivedBytes) + " / " + formatBytes(contentLength) +
+                        "｜" + percent.toFixed(1) + "%｜" + MBps.toFixed(2) + " MB/s｜" + Mbps.toFixed(2) + " Mbps";
                 } else {
-                    status.textContent =
-                        formatBytes(
-                            receivedBytes
-                        ) +
-                        "｜" +
-                        MBps.toFixed(2) +
-                        " MB/s｜" +
-                        Mbps.toFixed(2) +
-                        " Mbps";
+                    status.textContent = formatBytes(receivedBytes) + "｜" + MBps.toFixed(2) + " MB/s｜" + Mbps.toFixed(2) + " Mbps";
                 }
-
                 lastUpdate = currentTime;
             }
         }
 
-        const endTime =
-            performance.now();
+        const endTime = performance.now();
+        const elapsedSeconds = Math.max((endTime - startTime) / 1000, 0.001);
+        const averageMBps = receivedBytes / elapsedSeconds / 1_000_000;
+        const averageMbps = receivedBytes * 8 / elapsedSeconds / 1_000_000;
+        const rating = gradeSpeed(averageMbps);
+        const contentType = response.headers.get("Content-Type") || "application/octet-stream";
+        const blob = new Blob(chunks, { type: contentType });
+        const filename = createUniqueFilename(file.saveAs || file.name);
 
-        const elapsedSeconds =
-            Math.max(
-                (
-                    endTime -
-                    startTime
-                ) / 1000,
-                0.001
-            );
+        prepareFileForSaving(elements, blob, filename);
 
-        const averageMBps =
-            receivedBytes /
-            elapsedSeconds /
-            1_000_000;
-
-        const averageMbps =
-            receivedBytes *
-            8 /
-            elapsedSeconds /
-            1_000_000;
-
-        /*
-         * 評級只寫入 Server 紀錄，
-         * 不顯示在網頁。
-         */
-        const rating =
-            gradeSpeed(averageMbps);
-
-        const contentType =
-            response.headers.get(
-                "Content-Type"
-            ) ||
-            "application/octet-stream";
-
-        const blob = new Blob(
-            chunks,
-            {
-                type: contentType
-            }
-        );
-
-        const filename =
-            createUniqueFilename(
-                file.saveAs || file.name
-            );
-
-        /*
-         * 只準備檔案，不自動開啟儲存視窗。
-         * Android 使用者即使不儲存，也可繼續其他測速。
-         */
-        prepareFileForSaving(
-            elements,
-            blob,
-            filename
-        );
-
-        progress.max =
-            receivedBytes || 1;
-
-        progress.value =
-            receivedBytes || 1;
+        progress.max = receivedBytes || 1;
+        progress.value = receivedBytes || 1;
 
         record.status = "success";
         record.bytes = receivedBytes;
+        record.elapsed_ms = Math.round(elapsedSeconds * 1000);
+        record.average_MBps = Number(averageMBps.toFixed(3));
+        record.average_mbps = Number(averageMbps.toFixed(3));
+        record.speed_ratio_percent = rating.percent;
+        record.speed_grade = rating.grade;
+        record.finished_at = new Date().toISOString();
 
-        record.elapsed_ms = Math.round(
-            elapsedSeconds * 1000
-        );
+        status.className = "status success";
+        status.style.whiteSpace = "pre-line";
+        status.textContent = "下載完成\n耗時：" + elapsedSeconds.toFixed(2) + " 秒\n平均速度：" +
+            averageMBps.toFixed(2) + " MB/s（" + averageMbps.toFixed(2) + " Mbps）\n檔名：" + filename;
 
-        record.average_MBps = Number(
-            averageMBps.toFixed(3)
-        );
-
-        record.average_mbps = Number(
-            averageMbps.toFixed(3)
-        );
-
-        record.speed_ratio_percent =
-            rating.percent;
-
-        record.speed_grade =
-            rating.grade;
-
-        record.finished_at =
-            new Date().toISOString();
-
-        /*
-         * 畫面只顯示使用者指定的四項資料。
-         */
-        status.className =
-            "status success";
-
-        status.textContent =
-            "下載完成\n" +
-            "耗時：" +
-            elapsedSeconds.toFixed(2) +
-            " 秒\n" +
-            "平均速度：" +
-            averageMBps.toFixed(2) +
-            " MB/s（" +
-            averageMbps.toFixed(2) +
-            " Mbps）\n" +
-            "檔名：" +
-            filename;
-
-        /*
-         * 讓換行字元顯示為換行。
-         */
-        status.style.whiteSpace =
-            "pre-line";
-
-        /*
-         * 本頁平均只加入成功測速，
-         * 不會上傳至 Server。
-         */
-        addCompletedSpeed(
-            averageMbps
-        );
-
+        addCompletedSpeed(averageMbps);
         queueRecord(record);
-
         return record;
 
     } catch (error) {
         console.error(error);
-
-        const endTime =
-            performance.now();
-
-        let message =
-            error.message ||
-            String(error);
-
-        if (
-            message.includes(
-                "Failed to fetch"
-            ) ||
-            message.includes(
-                "Load failed"
-            )
-        ) {
-            message =
-                "無法讀取檔案，可能是 CORS 或網路連線問題";
+        const endTime = performance.now();
+        let message = error.message || String(error);
+        if (message.includes("Failed to fetch") || message.includes("Load failed")) {
+            message = "無法讀取檔案，可能是 CORS 或網路連線問題";
         }
 
         record.status = "failed";
         record.bytes = receivedBytes;
-
-        record.elapsed_ms = Math.round(
-            endTime - startTime
-        );
-
-        record.finished_at =
-            new Date().toISOString();
-
+        record.elapsed_ms = Math.round(endTime - startTime);
+        record.finished_at = new Date().toISOString();
         record.error = message;
 
-        status.style.whiteSpace =
-            "normal";
-
-        status.className =
-            "status error";
-
-        status.textContent =
-            "下載失敗：" + message;
-
+        status.style.whiteSpace = "normal";
+        status.className = "status error";
+        status.textContent = "下載失敗：" + message;
         queueRecord(record);
-
         return record;
 
     } finally {
-        if (reader) {
-            try {
-                reader.releaseLock();
-            } catch (_) {
-                // 不影響下載結果
-            }
-        }
-
+        if (reader) { try { reader.releaseLock(); } catch (_) {} }
         elements.hasRun = true;
-
         downloadRunning = false;
-
         setDownloadButtonsLocked(false);
     }
 }
@@ -1646,66 +987,37 @@ async function downloadAndMeasure(
  * ===================================================================== */
 
 files.forEach(file => {
-    const card =
-        document.createElement("section");
-
+    const card = document.createElement("section");
     card.className = "file-card";
 
-    const fileName =
-        document.createElement("div");
-
+    const fileName = document.createElement("div");
     fileName.className = "file-name";
+    fileName.textContent = file.label + "：" + file.name;
 
-    fileName.textContent =
-        file.label +
-        "：" +
-        file.name;
-
-    const fileURL =
-        document.createElement("div");
-
+    const fileURL = document.createElement("div");
     fileURL.className = "file-url";
     fileURL.textContent = file.url;
 
-    const actions =
-        document.createElement("div");
-
+    const actions = document.createElement("div");
     actions.className = "file-actions";
 
-    const button =
-        document.createElement("button");
-
+    const button = document.createElement("button");
     button.type = "button";
-    button.textContent =
-        "下載及測速";
+    button.textContent = "下載及測速";
 
-    const saveButton =
-        document.createElement("button");
-
+    const saveButton = document.createElement("button");
     saveButton.type = "button";
-    saveButton.className =
-        "save-button";
-
-    saveButton.textContent =
-        "儲存檔案（可選）";
-
+    saveButton.className = "save-button";
+    saveButton.textContent = "儲存檔案（可選）";
     saveButton.disabled = true;
 
-    const progress =
-        document.createElement("progress");
-
-    const status =
-        document.createElement("div");
-
+    const progress = document.createElement("progress");
+    const status = document.createElement("div");
     status.className = "status";
     status.textContent = "尚未開始";
 
     const elements = {
-        button,
-        saveButton,
-        progress,
-        status,
-
+        button, saveButton, progress, status,
         hasRun: false,
         objectURL: null,
         downloadFilename: null
@@ -1713,36 +1025,11 @@ files.forEach(file => {
 
     fileElements.push(elements);
 
-    button.addEventListener(
-        "click",
-        () => {
-            downloadAndMeasure(
-                file,
-                elements
-            );
-        }
-    );
+    button.addEventListener("click", () => downloadAndMeasure(file, elements));
+    saveButton.addEventListener("click", () => savePreparedFile(elements));
 
-    saveButton.addEventListener(
-        "click",
-        () => {
-            savePreparedFile(elements);
-        }
-    );
-
-    actions.append(
-        button,
-        saveButton
-    );
-
-    card.append(
-        fileName,
-        fileURL,
-        actions,
-        progress,
-        status
-    );
-
+    actions.append(button, saveButton);
+    card.append(fileName, fileURL, actions, progress, status);
     fileList.appendChild(card);
 });
 
@@ -1750,112 +1037,52 @@ files.forEach(file => {
  * 按鈕事件
  * ===================================================================== */
 
-// 同意連接按鈕
-consentButton.addEventListener(
-    "click",
-    async () => {
-        await requestConsent();
-    }
-);
+consentButton.addEventListener("click", requestConsent);
+iframeConsentButton.addEventListener("click", triggerConsentWithIframe);
+testConnectionButton.addEventListener("click", testConnection);
+uploadButton.addEventListener("click", flushPendingRecords);
+setIpButton.addEventListener("click", switchServer);
 
-// 測試連接按鈕
-testConnectionButton.addEventListener(
-    "click",
-    testConnection
-);
+// 按 Enter 鍵觸發切換
+serverIpInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") switchServer();
+});
 
-// 上傳紀錄按鈕
-uploadButton.addEventListener(
-    "click",
-    flushPendingRecords
-);
+resetButton.addEventListener("click", () => {
+    if (downloadRunning) return;
+    fileElements.forEach(elements => {
+        clearPreparedFile(elements);
+        elements.progress.style.display = "none";
+        elements.progress.removeAttribute("value");
+        elements.progress.removeAttribute("max");
+        elements.status.style.whiteSpace = "normal";
+        elements.status.className = "status";
+        elements.status.textContent = "尚未開始";
+        elements.hasRun = false;
+        elements.button.textContent = "下載及測速";
+    });
+    completedSpeeds.length = 0;
+    updateOverallAverage();
+});
 
-// 清除結果按鈕
-resetButton.addEventListener(
-    "click",
-    () => {
-        /*
-         * 測速進行中不執行清除，避免破壞目前畫面狀態。
-         */
-        if (downloadRunning) {
-            return;
-        }
-
-        fileElements.forEach(elements => {
-            clearPreparedFile(elements);
-
-            elements.progress.style.display =
-                "none";
-
-            elements.progress.removeAttribute(
-                "value"
-            );
-
-            elements.progress.removeAttribute(
-                "max"
-            );
-
-            elements.status.style.whiteSpace =
-                "normal";
-
-            elements.status.className =
-                "status";
-
-            elements.status.textContent =
-                "尚未開始";
-
-            elements.hasRun = false;
-
-            elements.button.textContent =
-                "下載及測速";
-        });
-
-        /*
-         * 只清除本頁平均。
-         * 不會刪除 localStorage 中等待上傳的紀錄。
-         */
-        completedSpeeds.length = 0;
-        updateOverallAverage();
-    }
-);
-
-/*
- * 離開頁面時釋放所有 Blob object URL。
- */
-window.addEventListener(
-    "pagehide",
-    () => {
-        fileElements.forEach(elements => {
-            if (elements.objectURL) {
-                URL.revokeObjectURL(
-                    elements.objectURL
-                );
-
-                elements.objectURL = null;
-            }
-        });
-    }
-);
+window.addEventListener("pagehide", () => {
+    fileElements.forEach(e => { if (e.objectURL) { URL.revokeObjectURL(e.objectURL); e.objectURL = null; } });
+    if (consentIframe) { consentIframe.remove(); consentIframe = null; }
+});
 
 /* =====================================================================
  * 初始化
  * ===================================================================== */
 
-// 檢查是否已儲存同意
-const hasConsent = checkStoredConsent();
+serverIpInput.value = serverHost;
+checkStoredConsent();
 
-// 更新 API 資訊顯示
-if (isIntranet) {
-    updateApiInfo('success', '✅ 當前在內聯網環境，API：' + API_URL);
-} else {
-    updateApiInfo('warning', '⚠️ 當前從外部訪問（' + currentHost + '），請先同意連接內聯網');
-}
+// 更新 API 資訊
+updateApiInfo();
 
-// 如果已有同意，自動測試連接
-if (hasConsent) {
-    setTimeout(() => {
-        testConnection();
-    }, 500);
+// 如果已有同意，自動測試
+if (consentGranted) {
+    setTimeout(testConnection, 500);
 }
 
 updateOverallAverage();
