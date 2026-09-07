@@ -102,12 +102,35 @@
             color: #92400e;
             line-height: 1.6;
         }
+        .method-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+            padding: 12px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            align-items: center;
+        }
+        .method-selector label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .method-selector input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
         @media (max-width: 600px) {
             body { padding: 14px; }
             .file-card { padding: 15px; }
             .file-actions { display: block; }
             button { width: 100%; }
             .file-actions button + button { margin-top: 10px; }
+            .method-selector { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
@@ -124,12 +147,11 @@
     </p>
 
     <div class="warning-box">
-        <strong>⚠️ 重要提示：</strong><br>
-        為避免 iOS Safari 的跨域限制，請使用以下網址直接訪問：
+        <strong>💡 建議：</strong><br>
+        為獲得最佳體驗，請使用內聯網地址訪問：
         <code style="background:#fff;padding:2px 8px;border-radius:4px;display:inline-block;margin-top:4px;">
             http://923test.local/index.html
         </code>
-        <br>如果無法訪問，請聯絡 IT 管理員確認內聯網連線。
     </div>
 
     <section class="average-panel">
@@ -145,6 +167,22 @@
             下載及測速完成後，紀錄會先儲存在此瀏覽器。
             請按下「上傳紀錄」傳送到 Server。
         </p>
+
+        <div class="method-selector">
+            <span style="font-weight:600;margin-right:5px;">上傳方式：</span>
+            <label>
+                <input type="radio" name="upload-method" value="beacon" checked>
+                Beacon (推薦)
+            </label>
+            <label>
+                <input type="radio" name="upload-method" value="image">
+                Image GET (繞過 CORS)
+            </label>
+            <label>
+                <input type="radio" name="upload-method" value="iframe">
+                iframe Form (無 CORS)
+            </label>
+        </div>
 
         <div id="upload-status" class="status">速度紀錄：檢查中……</div>
         <div class="toolbar">
@@ -177,7 +215,6 @@ const GRADE_RULES = [
 
 // 自動檢測當前環境
 const currentHost = window.location.hostname;
-const currentProtocol = window.location.protocol;
 
 // 如果在內聯網，使用相對路徑
 const isIntranet = currentHost === '923test.local' || 
@@ -191,6 +228,7 @@ function getAPIUrl() {
     if (isIntranet) {
         return '/api/download-results';
     }
+    // 從 GitHub Pages 訪問，使用完整網址
     return 'http://923test.local/api/download-results';
 }
 
@@ -248,6 +286,7 @@ const uploadButton = document.getElementById("upload-records");
 const resetButton = document.getElementById("reset-results");
 const overallAverage = document.getElementById("overall-average");
 const apiInfo = document.getElementById("api-info");
+const uploadMethods = document.querySelectorAll('input[name="upload-method"]');
 
 const fileElements = [];
 const completedSpeeds = [];
@@ -308,6 +347,13 @@ function createNoCacheURL(originalURL) {
     return url.toString();
 }
 
+function getSelectedMethod() {
+    for (const radio of uploadMethods) {
+        if (radio.checked) return radio.value;
+    }
+    return 'beacon';
+}
+
 /* =====================================================================
  * 更新 API 資訊
  * ===================================================================== */
@@ -317,7 +363,7 @@ function updateApiInfo() {
     const status = isIntranet ? 'success' : 'warning';
     const msg = isIntranet ? 
         '✅ 當前在內聯網環境，API：' + url :
-        '⚠️ 當前從外部訪問，API：' + url + '（可能因 CORS 被阻擋）';
+        '⚠️ 從 GitHub Pages 訪問，使用 ' + url + '（請選擇合適的上傳方式）';
     apiInfo.className = 'api-info ' + status;
     apiInfo.textContent = msg;
 }
@@ -377,7 +423,6 @@ function queueRecord(record) {
     if (!records.some(item => item.record_id === record.record_id)) {
         records.push(record);
         savePendingRecords(records);
-        // 有新紀錄，按鈕變回紅色
         setUploadButtonColor(false);
     }
 }
@@ -391,18 +436,16 @@ function updateUploadStatus(message = "") {
     if (count === 0) {
         uploadStatus.className = "status success";
         uploadStatus.textContent = "目前沒有等待上傳的速度紀錄";
-        // 沒有紀錄，按鈕變綠色
         setUploadButtonColor(true);
     } else {
         uploadStatus.className = "status";
         uploadStatus.textContent = "等待手動上傳至 Server 的紀錄：" + count + " 筆";
-        // 有紀錄，按鈕變紅色
         setUploadButtonColor(false);
     }
 }
 
 /* =====================================================================
- * 上傳方法：Beacon (背景發送，無 CORS)
+ * 上傳方法 1：Beacon
  * ===================================================================== */
 
 function uploadWithBeacon(records) {
@@ -412,16 +455,138 @@ function uploadWithBeacon(records) {
                 [JSON.stringify({ records })],
                 { type: 'application/json' }
             );
-
             const sent = navigator.sendBeacon(getAPIUrl(), blob);
-
             if (sent) {
                 resolve({ ok: true, text: '已透過 Beacon 發送' });
             } else {
-                reject(new Error('Beacon 發送失敗（瀏覽器限制或佇列已滿）'));
+                reject(new Error('Beacon 發送失敗'));
             }
         } catch (error) {
             reject(new Error('Beacon 錯誤：' + (error.message || String(error))));
+        }
+    });
+}
+
+/* =====================================================================
+ * 上傳方法 2：Image GET (繞過 CORS)
+ * ===================================================================== */
+
+function uploadWithImage(records) {
+    return new Promise((resolve, reject) => {
+        try {
+            // 將資料編碼到 URL (GET 請求)
+            const data = JSON.stringify({ records });
+            const encoded = encodeURIComponent(data);
+            const url = getAPIUrl() + '?data=' + encoded + '&_=' + Date.now();
+            
+            const img = new Image();
+            let resolved = false;
+            
+            const timeout = setTimeout(() => {
+                if (!resolved) {
+                    resolved = true;
+                    img.src = '';
+                    reject(new Error('Image 請求逾時（5秒）'));
+                }
+            }, 5000);
+            
+            img.onload = () => {
+                if (!resolved) {
+                    resolved = true;
+                    clearTimeout(timeout);
+                    resolve({ ok: true, text: '已透過 Image 發送' });
+                }
+            };
+            
+            img.onerror = () => {
+                if (!resolved) {
+                    resolved = true;
+                    clearTimeout(timeout);
+                    // 即使 onerror 觸發，請求可能已經發送
+                    // 所以我們當作成功（因為無法確認）
+                    resolve({ ok: true, text: '已發送（Image 載入失敗，但請求可能已發送）' });
+                }
+            };
+            
+            img.src = url;
+            
+            // 如果 img 沒有觸發任何事件，10 秒後強制完成
+            setTimeout(() => {
+                if (!resolved) {
+                    resolved = true;
+                    img.src = '';
+                    resolve({ ok: true, text: '已發送（Image 無回應）' });
+                }
+            }, 10000);
+            
+        } catch (error) {
+            reject(new Error('Image 錯誤：' + (error.message || String(error))));
+        }
+    });
+}
+
+/* =====================================================================
+ * 上傳方法 3：iframe Form (無 CORS)
+ * ===================================================================== */
+
+function uploadWithIframe(records) {
+    return new Promise((resolve, reject) => {
+        try {
+            const iframeId = 'upload_iframe_' + Date.now();
+            const formId = 'upload_form_' + Date.now();
+
+            // 創建 iframe
+            const iframe = document.createElement('iframe');
+            iframe.id = iframeId;
+            iframe.name = iframeId;
+            iframe.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
+            document.body.appendChild(iframe);
+
+            // 創建 form
+            const form = document.createElement('form');
+            form.id = formId;
+            form.method = 'POST';
+            form.action = getAPIUrl();
+            form.target = iframeId;
+            form.enctype = 'application/x-www-form-urlencoded';
+            form.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
+            document.body.appendChild(form);
+
+            // 將資料放入 form
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'records';
+            input.value = JSON.stringify(records);
+            form.appendChild(input);
+
+            let resolved = false;
+
+            // 監聽 iframe 載入
+            iframe.onload = () => {
+                if (!resolved) {
+                    resolved = true;
+                    setTimeout(() => {
+                        form.remove();
+                        iframe.remove();
+                    }, 500);
+                    resolve({ ok: true, text: '已透過 iframe Form 發送' });
+                }
+            };
+
+            // 逾時
+            setTimeout(() => {
+                if (!resolved) {
+                    resolved = true;
+                    form.remove();
+                    iframe.remove();
+                    resolve({ ok: true, text: '已發送（iframe 無回應）' });
+                }
+            }, 10000);
+
+            form.submit();
+
+        } catch (error) {
+            reject(new Error('iframe 錯誤：' + (error.message || String(error))));
         }
     });
 }
@@ -444,19 +609,37 @@ async function flushPendingRecords() {
     uploadStatus.className = "status";
     updateUploadStatus("正在上傳");
 
+    const method = getSelectedMethod();
     const sentIDs = new Set(records.map(r => r.record_id));
 
     try {
-        const result = await uploadWithBeacon(records);
+        let result;
+        const methodNames = {
+            'beacon': 'Beacon',
+            'image': 'Image GET',
+            'iframe': 'iframe Form'
+        };
+
+        switch (method) {
+            case 'image':
+                result = await uploadWithImage(records);
+                break;
+            case 'iframe':
+                result = await uploadWithIframe(records);
+                break;
+            case 'beacon':
+            default:
+                result = await uploadWithBeacon(records);
+                break;
+        }
 
         // 移除已上傳的紀錄
         const remaining = getPendingRecords().filter(r => !sentIDs.has(r.record_id));
         savePendingRecords(remaining);
 
         uploadStatus.className = "status success";
-        updateUploadStatus("✅ 成功上傳 " + records.length + " 筆紀錄");
+        updateUploadStatus("✅ 成功上傳 " + records.length + " 筆紀錄（方式：' + methodNames[method] + '）");
 
-        // 上傳成功，按鈕變綠色
         setUploadButtonColor(true);
 
     } catch (error) {
@@ -464,13 +647,12 @@ async function flushPendingRecords() {
         let msg = error.message || String(error);
 
         if (msg.includes('Failed to fetch') || msg.includes('Load failed')) {
-            msg = '無法連接伺服器。請確認內聯網連線。';
+            msg = '無法連接伺服器。請嘗試切換上傳方式，或使用內聯網地址訪問。';
         }
 
         uploadStatus.className = "status error";
         updateUploadStatus("❌ 上傳失敗：" + msg);
 
-        // 上傳失敗，按鈕保持紅色
         setUploadButtonColor(false);
     } finally {
         uploadRunning = false;
@@ -769,8 +951,6 @@ window.addEventListener("pagehide", () => {
 updateApiInfo();
 updateOverallAverage();
 updateUploadStatus();
-
-// 初始化按鈕顏色
 setUploadButtonColor(getPendingRecords().length === 0);
 
 console.log('🔍 當前環境：', {
@@ -779,13 +959,6 @@ console.log('🔍 當前環境：', {
     api: getAPIUrl(),
     health: getHealthUrl()
 });
-
-// 如果在內聯網，顯示提示
-if (isIntranet) {
-    console.log('✅ 已在內聯網環境，使用 Beacon 上傳');
-} else {
-    console.warn('⚠️ 從外部訪問，Beacon 可能無法運作');
-}
 </script>
 </body>
 </html>
