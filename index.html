@@ -55,11 +55,6 @@
         .secondary-button:hover:not(:disabled) { background: #1f2937; }
         .save-button { display: none; background: #047857; }
         .save-button:hover:not(:disabled) { background: #065f46; }
-        .consent-button { background: #059669; }
-        .consent-button:hover:not(:disabled) { background: #047857; }
-        .consent-button:disabled { background: #9ca3af; }
-        .danger-button { background: #dc2626; }
-        .danger-button:hover:not(:disabled) { background: #b91c1c; }
         progress { display: none; width: 100%; height: 19px; margin-top: 15px; }
         .status { min-height: 25px; margin-top: 12px; color: #374151; line-height: 1.6; word-break: break-word; }
         .success { color: #047857; font-weight: 600; }
@@ -76,25 +71,6 @@
         }
         .upload-panel-title { margin: 0 0 8px; font-size: 19px; font-weight: 700; }
         .upload-panel-description { margin: 0; color: #4b5563; line-height: 1.6; }
-        .consent-panel {
-            margin-top: 20px;
-            padding: 18px;
-            background: #fffbeb;
-            border: 2px solid #f59e0b;
-            border-radius: 14px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.06);
-        }
-        .consent-panel-title { margin: 0 0 8px; font-size: 19px; font-weight: 700; color: #92400e; }
-        .consent-panel-description { margin: 0 0 15px; color: #78350f; line-height: 1.6; }
-        .consent-status {
-            margin-top: 12px;
-            padding: 12px;
-            background: #f3f4f6;
-            border-radius: 8px;
-            font-size: 14px;
-            line-height: 1.6;
-            white-space: pre-line;
-        }
         .api-info {
             margin-top: 20px;
             padding: 14px;
@@ -105,35 +81,44 @@
         .api-info.success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
         .api-info.warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
         .api-info.error { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
-        .hidden { display: none !important; }
-        .ip-input-group {
+        .warning-box {
+            margin-top: 20px;
+            padding: 14px;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 10px;
+            color: #92400e;
+            line-height: 1.6;
+        }
+        .upload-method-selector {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            margin: 10px 0;
-            align-items: center;
-        }
-        .ip-input-group input {
-            flex: 1;
-            min-width: 200px;
-            padding: 10px 14px;
-            border: 1px solid #d1d5db;
+            margin: 15px 0;
+            padding: 12px;
+            background: #f3f4f6;
             border-radius: 8px;
-            font-size: 16px;
-            background: #ffffff;
         }
-        .ip-input-group input:focus {
-            outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        .upload-method-selector label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 14px;
         }
+        .upload-method-selector input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .hidden { display: none !important; }
         @media (max-width: 600px) {
             body { padding: 14px; }
             .file-card { padding: 15px; }
             .file-actions { display: block; }
             button { width: 100%; }
             .file-actions button + button { margin-top: 10px; }
-            .ip-input-group input { min-width: 100%; }
+            .upload-method-selector { flex-direction: column; }
         }
     </style>
 </head>
@@ -149,48 +134,14 @@
         必須按下「上傳紀錄」才會上傳至 Server。
     </p>
 
-    <!-- ============================================================
-    同意連接內聯網面板
-    ============================================================ -->
-    <section class="consent-panel" id="consent-panel">
-        <h2 class="consent-panel-title">🔒 連接內聯網伺服器</h2>
-
-        <p class="consent-panel-description">
-            iOS Safari 對內聯網域名（如 923test.local）有額外的私隱保護。
-            請嘗試以下方法之一來建立連接：
-        </p>
-
-        <!-- 方法 1：手動輸入 IP -->
-        <div style="margin: 15px 0; padding: 12px; background: #f0f9ff; border-radius: 8px; border: 1px solid #7dd3fc;">
-            <strong>方法 1：</strong> 輸入內聯網伺服器 IP 地址
-            <div class="ip-input-group">
-                <input type="text" id="server-ip-input" placeholder="例如：192.168.1.100" value="923test.local">
-                <button id="set-ip-button" class="secondary-button" type="button" style="flex: 0 0 auto;">切換到這個 IP</button>
-            </div>
-            <div style="font-size: 13px; color: #6b7280; margin-top: 5px;">
-                💡 提示：在內聯網中，請用 IP 地址（如 192.168.x.x）代替域名
-            </div>
-        </div>
-
-        <div style="margin: 15px 0; padding: 12px; background: #fef3c7; border-radius: 8px; border: 1px solid #fcd34d;">
-            <strong>方法 2：</strong> 點擊下方按鈕觸發連接
-            <div class="toolbar" style="margin-top: 10px;">
-                <button id="consent-button" class="consent-button" type="button">
-                    ✅ 同意連接內聯網
-                </button>
-                <button id="iframe-consent-button" class="consent-button" type="button">
-                    📄 用 iframe 觸發連接
-                </button>
-                <button id="test-connection-button" class="secondary-button" type="button">
-                    🔄 測試連接
-                </button>
-            </div>
-        </div>
-
-        <div id="consent-status" class="consent-status">
-            ⏳ 尚未連接。請嘗試以上方法。
-        </div>
-    </section>
+    <div class="warning-box">
+        <strong>⚠️ 重要提示：</strong><br>
+        為避免 iOS Safari 的跨域限制，請使用以下網址直接訪問：
+        <code style="background:#fff;padding:2px 8px;border-radius:4px;display:inline-block;margin-top:4px;">
+            http://923test.local/index.html
+        </code>
+        <br>如果無法訪問，請聯絡 IT 管理員確認內聯網連線。
+    </div>
 
     <section class="average-panel">
         <div class="average-title">本頁測速平均</div>
@@ -205,20 +156,31 @@
             下載及測速完成後，紀錄會先儲存在此瀏覽器。
             請按下「上傳紀錄」傳送到 Server。
         </p>
+
+        <div class="upload-method-selector">
+            <span style="font-weight:600;margin-right:10px;">上傳方式：</span>
+            <label>
+                <input type="radio" name="upload-method" value="fetch" checked>
+                Fetch (CORS)
+            </label>
+            <label>
+                <input type="radio" name="upload-method" value="form">
+                Form 提交 (無 CORS)
+            </label>
+            <label>
+                <input type="radio" name="upload-method" value="beacon">
+                Beacon (背景發送)
+            </label>
+        </div>
+
         <div id="upload-status" class="status">速度紀錄：檢查中……</div>
         <div class="toolbar">
-            <button id="upload-records" class="secondary-button" type="button" disabled>上傳紀錄</button>
+            <button id="upload-records" class="secondary-button" type="button">上傳紀錄</button>
             <button id="reset-results" class="secondary-button" type="button">清除畫面結果</button>
         </div>
     </section>
 
     <div id="api-info" class="api-info warning">連接狀態：偵測中……</div>
-
-    <div class="warning" style="margin-top:20px;padding:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;color:#92400e;line-height:1.6;">
-        此網頁使用 JavaScript Fetch 讀取外部下載網址。
-        如果外部伺服器不允許跨來源存取（CORS），
-        瀏覽器可能會阻止測速，並顯示「Failed to fetch」或 CORS 錯誤。
-    </div>
 </div>
 
 <script>
@@ -237,37 +199,33 @@ const GRADE_RULES = [
 ];
 
 /* =====================================================================
- * API 網址設定 - 可手動切換
+ * API 網址設定
  * ===================================================================== */
 
-// 預設伺服器地址
-let serverHost = localStorage.getItem('cvent_server_host') || '923test.local';
-let serverProtocol = 'http:';
-
-// 取得當前頁面資訊
+// 自動檢測當前環境
 const currentHost = window.location.hostname;
 const currentProtocol = window.location.protocol;
 
-// 如果當前頁面已經是內聯網，使用當前設定
-if (currentHost === '923test.local' || currentHost === 'localhost' || currentHost === '127.0.0.1') {
-    serverHost = currentHost;
-    serverProtocol = currentProtocol;
-}
+// 如果在內聯網，使用相對路徑
+const isIntranet = currentHost === '923test.local' || 
+                   currentHost === 'localhost' || 
+                   currentHost === '127.0.0.1' ||
+                   /^192\.168\./.test(currentHost) ||
+                   /^10\./.test(currentHost) ||
+                   /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(currentHost);
 
-// 構建 API 網址
 function getAPIUrl() {
-    return serverProtocol + '//' + serverHost + '/api/download-results';
+    if (isIntranet) {
+        return '/api/download-results';
+    }
+    return 'http://923test.local/api/download-results';
 }
 
 function getHealthUrl() {
-    return serverProtocol + '//' + serverHost + '/api/health';
-}
-
-// 儲存伺服器設定
-function setServerHost(host) {
-    serverHost = host;
-    localStorage.setItem('cvent_server_host', host);
-    updateApiInfo();
+    if (isIntranet) {
+        return '/api/health';
+    }
+    return 'http://923test.local/api/health';
 }
 
 /* =====================================================================
@@ -310,32 +268,20 @@ const files = [
  * ===================================================================== */
 
 const PENDING_KEY = "cvent_pending_download_records_v1";
-const CONSENT_KEY = "cvent_consent_granted_v1";
 
 const fileList = document.getElementById("file-list");
 const uploadStatus = document.getElementById("upload-status");
 const uploadButton = document.getElementById("upload-records");
 const resetButton = document.getElementById("reset-results");
 const overallAverage = document.getElementById("overall-average");
-const consentButton = document.getElementById("consent-button");
-const iframeConsentButton = document.getElementById("iframe-consent-button");
-const testConnectionButton = document.getElementById("test-connection-button");
-const consentStatus = document.getElementById("consent-status");
-const consentPanel = document.getElementById("consent-panel");
 const apiInfo = document.getElementById("api-info");
-const serverIpInput = document.getElementById("server-ip-input");
-const setIpButton = document.getElementById("set-ip-button");
+const uploadMethods = document.querySelectorAll('input[name="upload-method"]');
 
 const fileElements = [];
 const completedSpeeds = [];
 
 let uploadRunning = false;
-let consentGranted = false;
-let isTestingConnection = false;
 let downloadRunning = false;
-
-// 隱藏的 iframe 用於觸發連接
-let consentIframe = null;
 
 /* =====================================================================
  * 工具函數
@@ -390,258 +336,25 @@ function createNoCacheURL(originalURL) {
     return url.toString();
 }
 
-/* =====================================================================
- * 同意連接管理
- * ===================================================================== */
-
-function updateConsentStatus(message, type = "info") {
-    const icons = { info: 'ℹ️', success: '✅', error: '❌', warning: '⚠️' };
-    consentStatus.textContent = (icons[type] || 'ℹ️') + ' ' + message;
-    consentStatus.className = 'consent-status ' + type;
+function getSelectedMethod() {
+    for (const radio of uploadMethods) {
+        if (radio.checked) return radio.value;
+    }
+    return 'fetch';
 }
+
+/* =====================================================================
+ * 更新 API 資訊
+ * ===================================================================== */
 
 function updateApiInfo() {
     const url = getAPIUrl();
-    const healthUrl = getHealthUrl();
-    const status = consentGranted ? 'success' : 'warning';
-    const msg = consentGranted ? 
-        '✅ 已連接至 ' + url :
-        '⚠️ 尚未連接。請先同意連接內聯網。伺服器：' + serverHost;
-    
+    const status = isIntranet ? 'success' : 'warning';
+    const msg = isIntranet ? 
+        '✅ 當前在內聯網環境，API：' + url :
+        '⚠️ 當前從外部訪問，API：' + url + '（可能因 CORS 被阻擋）';
     apiInfo.className = 'api-info ' + status;
-    apiInfo.textContent = msg + ' | 健康檢查：' + healthUrl;
-    
-    // 更新輸入框
-    serverIpInput.value = serverHost;
-}
-
-function setConsentGranted(granted) {
-    consentGranted = granted;
-    if (granted) {
-        localStorage.setItem(CONSENT_KEY, 'true');
-        consentButton.disabled = true;
-        consentButton.textContent = '✅ 已同意連接';
-        iframeConsentButton.disabled = true;
-        iframeConsentButton.textContent = '✅ 已同意連接';
-        uploadButton.disabled = false;
-        consentPanel.style.borderColor = '#86efac';
-        consentPanel.style.background = '#f0fdf4';
-        updateConsentStatus('已同意連接內聯網。可以上傳測速紀錄。', 'success');
-    } else {
-        localStorage.removeItem(CONSENT_KEY);
-        consentButton.disabled = false;
-        consentButton.textContent = '✅ 同意連接內聯網';
-        iframeConsentButton.disabled = false;
-        iframeConsentButton.textContent = '📄 用 iframe 觸發連接';
-        uploadButton.disabled = true;
-        consentPanel.style.borderColor = '#f59e0b';
-        consentPanel.style.background = '#fffbeb';
-        updateConsentStatus('尚未連接。請嘗試以上方法。', 'warning');
-    }
-    updateApiInfo();
-}
-
-function checkStoredConsent() {
-    if (localStorage.getItem(CONSENT_KEY) === 'true') {
-        setConsentGranted(true);
-        return true;
-    }
-    return false;
-}
-
-/* =====================================================================
- * 方法 1：Fetch 請求觸發同意
- * ===================================================================== */
-
-async function requestConsent() {
-    if (consentGranted) return true;
-
-    updateConsentStatus('正在嘗試連接內聯網…請稍候', 'info');
-    consentButton.disabled = true;
-
-    try {
-        const url = getHealthUrl() + '?_=' + Date.now();
-        
-        const response = await fetch(url, {
-            method: 'GET',
-            cache: 'no-store',
-            credentials: 'same-origin',
-            headers: { 'Accept': 'application/json' }
-        });
-
-        if (response.ok) {
-            setConsentGranted(true);
-            return true;
-        } else {
-            throw new Error('伺服器回應：' + response.status);
-        }
-    } catch (error) {
-        console.error('連接失敗：', error);
-        
-        // 如果 fetch 失敗，嘗試用 Image 對象
-        try {
-            await new Promise((resolve, reject) => {
-                const img = new Image();
-                const timeout = setTimeout(() => {
-                    img.src = '';
-                    reject(new Error('逾時'));
-                }, 5000);
-                img.onload = () => { clearTimeout(timeout); resolve(); };
-                img.onerror = () => { clearTimeout(timeout); reject(new Error('圖片載入失敗')); };
-                img.src = getHealthUrl() + '?_=' + Date.now();
-            });
-            setConsentGranted(true);
-            return true;
-        } catch (imgError) {
-            // 兩種方法都失敗
-            const msg = error.message || String(error);
-            updateConsentStatus(
-                '連接失敗。請嘗試：\n1. 確認內聯網連接正常\n2. 使用 IP 地址代替域名\n3. 點擊「用 iframe 觸發連接」\n\n錯誤：' + msg,
-                'error'
-            );
-            consentButton.disabled = false;
-            return false;
-        }
-    } finally {
-        consentButton.disabled = false;
-    }
-}
-
-/* =====================================================================
- * 方法 2：iframe 觸發同意
- * ===================================================================== */
-
-function triggerConsentWithIframe() {
-    if (consentGranted) return;
-
-    updateConsentStatus('正在用 iframe 觸發連接…', 'info');
-    iframeConsentButton.disabled = true;
-
-    // 移除舊的 iframe
-    if (consentIframe) {
-        consentIframe.remove();
-        consentIframe = null;
-    }
-
-    // 創建新的 iframe
-    consentIframe = document.createElement('iframe');
-    consentIframe.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
-    consentIframe.src = getHealthUrl() + '?_=' + Date.now();
-    
-    // 監聽 iframe 加載完成
-    consentIframe.onload = () => {
-        setTimeout(() => {
-            // 嘗試用 fetch 確認連接
-            fetch(getHealthUrl() + '?_=' + Date.now(), {
-                method: 'GET',
-                cache: 'no-store',
-                credentials: 'same-origin'
-            })
-            .then(res => {
-                if (res.ok) {
-                    setConsentGranted(true);
-                } else {
-                    updateConsentStatus('iframe 載入完成，但伺服器回應異常', 'warning');
-                    iframeConsentButton.disabled = false;
-                }
-            })
-            .catch(() => {
-                updateConsentStatus('iframe 載入完成，但連接測試失敗', 'warning');
-                iframeConsentButton.disabled = false;
-            });
-        }, 500);
-    };
-
-    consentIframe.onerror = () => {
-        updateConsentStatus('iframe 載入失敗', 'error');
-        iframeConsentButton.disabled = false;
-    };
-
-    document.body.appendChild(consentIframe);
-
-    // 5 秒後自動移除 iframe（如果還沒觸發）
-    setTimeout(() => {
-        if (consentIframe && !consentGranted) {
-            consentIframe.remove();
-            consentIframe = null;
-            iframeConsentButton.disabled = false;
-            updateConsentStatus('iframe 載入逾時，請重試', 'warning');
-        }
-    }, 5000);
-}
-
-/* =====================================================================
- * 測試連接
- * ===================================================================== */
-
-async function testConnection() {
-    if (isTestingConnection) return;
-
-    isTestingConnection = true;
-    testConnectionButton.disabled = true;
-    updateConsentStatus('正在測試連接…', 'info');
-
-    try {
-        const url = getHealthUrl() + '?_=' + Date.now();
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
-
-        const response = await fetch(url, {
-            method: 'GET',
-            cache: 'no-store',
-            credentials: 'same-origin',
-            signal: controller.signal
-        });
-
-        clearTimeout(timeout);
-
-        if (response.ok) {
-            const data = await response.json().catch(() => ({}));
-            updateConsentStatus('✅ 連接成功！伺服器：' + serverHost + '，狀態：' + (data.status || '正常'), 'success');
-            if (!consentGranted) setConsentGranted(true);
-        } else {
-            updateConsentStatus('⚠️ 伺服器回應：HTTP ' + response.status, 'error');
-        }
-    } catch (error) {
-        let msg = error.message || String(error);
-        if (error.name === 'AbortError') msg = '連接逾時（5秒）';
-        if (msg.includes('Failed to fetch') || msg.includes('Load failed')) {
-            msg = '無法連接。請確認伺服器地址正確，或使用 IP 地址代替域名。';
-        }
-        updateConsentStatus('❌ 連接失敗：' + msg, 'error');
-    } finally {
-        isTestingConnection = false;
-        testConnectionButton.disabled = false;
-    }
-}
-
-/* =====================================================================
- * 切換伺服器 IP
- * ===================================================================== */
-
-function switchServer() {
-    const newHost = serverIpInput.value.trim();
-    if (!newHost) {
-        alert('請輸入伺服器地址（IP 或域名）');
-        return;
-    }
-    
-    // 如果用戶輸入的是 IP，確保使用 http
-    if (/^\d+\.\d+\.\d+\.\d+$/.test(newHost)) {
-        serverProtocol = 'http:';
-    } else {
-        serverProtocol = 'http:'; // 內聯網預設用 http
-    }
-    
-    setServerHost(newHost);
-    
-    // 重置同意狀態（因為換了伺服器）
-    setConsentGranted(false);
-    
-    updateConsentStatus('已切換到：' + newHost + '，請重新連接', 'info');
-    
-    // 自動測試連接
-    setTimeout(() => testConnection(), 500);
+    apiInfo.textContent = msg;
 }
 
 /* =====================================================================
@@ -706,16 +419,124 @@ function updateUploadStatus(message = "") {
 }
 
 /* =====================================================================
- * 上傳紀錄
+ * 上傳方法 1：Fetch (CORS)
+ * ===================================================================== */
+
+async function uploadWithFetch(records) {
+    const response = await fetch(getAPIUrl(), {
+        method: "POST",
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ records })
+    });
+
+    if (!response.ok) {
+        let serverMessage = "";
+        try { serverMessage = (await response.text()).trim(); } catch (_) {}
+        throw new Error("HTTP " + response.status + (serverMessage ? "：" + serverMessage.substring(0, 200) : ""));
+    }
+
+    return response;
+}
+
+/* =====================================================================
+ * 上傳方法 2：Form 提交 (無 CORS)
+ * ===================================================================== */
+
+function uploadWithForm(records) {
+    return new Promise((resolve, reject) => {
+        const formId = 'upload_form_' + Date.now();
+        const iframeId = 'upload_iframe_' + Date.now();
+
+        // 創建 iframe
+        const iframe = document.createElement('iframe');
+        iframe.id = iframeId;
+        iframe.name = iframeId;
+        iframe.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
+        document.body.appendChild(iframe);
+
+        // 創建 form
+        const form = document.createElement('form');
+        form.id = formId;
+        form.method = 'POST';
+        form.action = getAPIUrl();
+        form.target = iframeId;
+        form.enctype = 'application/x-www-form-urlencoded';
+        form.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
+        document.body.appendChild(form);
+
+        // 將資料放入 form (URL encoded)
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'records';
+        input.value = JSON.stringify(records);
+        form.appendChild(input);
+
+        // 監聽 iframe 載入
+        let loaded = false;
+        iframe.onload = () => {
+            if (loaded) return;
+            loaded = true;
+
+            try {
+                // 嘗試讀取 iframe 內容
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                const bodyText = doc.body ? doc.body.textContent || doc.body.innerText || '' : '';
+                resolve({ ok: true, text: bodyText });
+            } catch (e) {
+                // 跨域時無法讀取內容，但請求已發送
+                resolve({ ok: true, text: '已發送（無法讀取回應）' });
+            } finally {
+                setTimeout(() => {
+                    form.remove();
+                    iframe.remove();
+                }, 1000);
+            }
+        };
+
+        // 逾時處理
+        const timeout = setTimeout(() => {
+            if (!loaded) {
+                loaded = true;
+                form.remove();
+                iframe.remove();
+                reject(new Error('上傳逾時（10秒）'));
+            }
+        }, 10000);
+
+        // 提交表單
+        form.submit();
+    });
+}
+
+/* =====================================================================
+ * 上傳方法 3：Beacon (背景發送)
+ * ===================================================================== */
+
+function uploadWithBeacon(records) {
+    return new Promise((resolve, reject) => {
+        const blob = new Blob(
+            [JSON.stringify({ records })],
+            { type: 'application/json' }
+        );
+
+        const sent = navigator.sendBeacon(getAPIUrl(), blob);
+
+        if (sent) {
+            resolve({ ok: true, text: '已透過 Beacon 發送' });
+        } else {
+            reject(new Error('Beacon 發送失敗（瀏覽器限制）'));
+        }
+    });
+}
+
+/* =====================================================================
+ * 上傳紀錄（主函數）
  * ===================================================================== */
 
 async function flushPendingRecords() {
     if (uploadRunning) return;
-    if (!consentGranted) {
-        uploadStatus.className = "status error";
-        uploadStatus.textContent = "⚠️ 請先點擊「同意連接內聯網」按鈕才能上傳";
-        return;
-    }
 
     const records = getPendingRecords();
     if (records.length === 0) {
@@ -728,49 +549,46 @@ async function flushPendingRecords() {
     uploadStatus.className = "status";
     updateUploadStatus("正在上傳");
 
+    const method = getSelectedMethod();
     const sentIDs = new Set(records.map(r => r.record_id));
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
 
     try {
-        const response = await fetch(getAPIUrl(), {
-            method: "POST",
-            cache: "no-store",
-            credentials: "same-origin",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ records }),
-            signal: controller.signal
-        });
+        let result;
 
-        if (!response.ok) {
-            const allow = response.headers.get("Allow");
-            let serverMessage = "";
-            try { serverMessage = (await response.text()).trim(); } catch (_) {}
-            if (response.status === 405) {
-                throw new Error("HTTP 405：Server 不允許 POST" + (allow ? "（允許：" + allow + "）" : ""));
-            }
-            throw new Error("HTTP " + response.status + (serverMessage ? "：" + serverMessage.substring(0, 200) : ""));
+        switch (method) {
+            case 'form':
+                result = await uploadWithForm(records);
+                break;
+            case 'beacon':
+                result = await uploadWithBeacon(records);
+                break;
+            case 'fetch':
+            default:
+                result = await uploadWithFetch(records);
+                break;
         }
 
+        // 移除已上傳的紀錄
         const remaining = getPendingRecords().filter(r => !sentIDs.has(r.record_id));
         savePendingRecords(remaining);
 
         uploadStatus.className = "status success";
-        updateUploadStatus("成功上傳 " + records.length + " 筆紀錄");
+        updateUploadStatus(
+            "✅ 成功上傳 " + records.length + " 筆紀錄（方式：' + method + '）" +
+            (result.text ? "｜回應：" + result.text.substring(0, 100) : "")
+        );
+
     } catch (error) {
         console.error("上傳失敗：", error);
         let msg = error.message || String(error);
-        if (error.name === "AbortError") msg = "連線逾時";
+
         if (msg.includes('Failed to fetch') || msg.includes('Load failed')) {
-            uploadStatus.className = "status error";
-            uploadStatus.textContent = "⚠️ 上傳失敗：無法連接伺服器。請重新點擊「同意連接內聯網」";
-            setConsentGranted(false);
-            return;
+            msg = '無法連接伺服器。請確認內聯網連線，或嘗試切換上傳方式。';
         }
+
         uploadStatus.className = "status error";
-        updateUploadStatus("上傳失敗：" + msg);
+        updateUploadStatus("❌ 上傳失敗：" + msg);
     } finally {
-        clearTimeout(timeout);
         uploadRunning = false;
         uploadButton.disabled = false;
     }
@@ -1037,16 +855,7 @@ files.forEach(file => {
  * 按鈕事件
  * ===================================================================== */
 
-consentButton.addEventListener("click", requestConsent);
-iframeConsentButton.addEventListener("click", triggerConsentWithIframe);
-testConnectionButton.addEventListener("click", testConnection);
 uploadButton.addEventListener("click", flushPendingRecords);
-setIpButton.addEventListener("click", switchServer);
-
-// 按 Enter 鍵觸發切換
-serverIpInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") switchServer();
-});
 
 resetButton.addEventListener("click", () => {
     if (downloadRunning) return;
@@ -1067,26 +876,29 @@ resetButton.addEventListener("click", () => {
 
 window.addEventListener("pagehide", () => {
     fileElements.forEach(e => { if (e.objectURL) { URL.revokeObjectURL(e.objectURL); e.objectURL = null; } });
-    if (consentIframe) { consentIframe.remove(); consentIframe = null; }
 });
 
 /* =====================================================================
  * 初始化
  * ===================================================================== */
 
-serverIpInput.value = serverHost;
-checkStoredConsent();
-
-// 更新 API 資訊
 updateApiInfo();
-
-// 如果已有同意，自動測試
-if (consentGranted) {
-    setTimeout(testConnection, 500);
-}
-
 updateOverallAverage();
 updateUploadStatus();
+
+console.log('🔍 當前環境：', {
+    host: currentHost,
+    isIntranet: isIntranet,
+    api: getAPIUrl(),
+    health: getHealthUrl()
+});
+
+// 如果在內聯網，顯示提示
+if (isIntranet) {
+    console.log('✅ 已在內聯網環境，可直接上傳');
+} else {
+    console.warn('⚠️ 從外部訪問，請切換到 Form 提交模式');
+}
 </script>
 </body>
 </html>
