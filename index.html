@@ -142,6 +142,18 @@
             background: #065f46;
         }
 
+        .consent-button {
+            background: #059669;
+        }
+
+        .consent-button:hover:not(:disabled) {
+            background: #047857;
+        }
+
+        .consent-button:disabled {
+            background: #9ca3af;
+        }
+
         progress {
             display: none;
             width: 100%;
@@ -167,6 +179,16 @@
             font-weight: 600;
         }
 
+        .warning {
+            color: #92400e;
+            font-weight: 600;
+        }
+
+        .info {
+            color: #1e40af;
+            font-weight: 600;
+        }
+
         .upload-panel {
             margin-top: 24px;
             padding: 18px;
@@ -188,14 +210,68 @@
             line-height: 1.6;
         }
 
-        .warning {
+        .consent-panel {
+            margin-top: 20px;
+            padding: 18px;
+            background: #fffbeb;
+            border: 2px solid #f59e0b;
+            border-radius: 14px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+        }
+
+        .consent-panel-title {
+            margin: 0 0 8px;
+            font-size: 19px;
+            font-weight: 700;
+            color: #92400e;
+        }
+
+        .consent-panel-description {
+            margin: 0 0 15px;
+            color: #78350f;
+            line-height: 1.6;
+        }
+
+        .consent-status {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .api-info {
             margin-top: 20px;
             padding: 14px;
-            background: #fffbeb;
-            border: 1px solid #fcd34d;
+            background: #f0fdf4;
+            border: 1px solid #86efac;
             border-radius: 10px;
-            color: #92400e;
+            color: #166534;
             line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .api-info.warning {
+            background: #fffbeb;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+
+        .api-info.success {
+            background: #f0fdf4;
+            border-color: #86efac;
+            color: #166534;
+        }
+
+        .api-info.error {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+
+        .hidden {
+            display: none !important;
         }
 
         @media (max-width: 600px) {
@@ -234,6 +310,41 @@
         必須按下「上傳紀錄」才會上傳至 Server。
     </p>
 
+    <!-- ============================================================
+    同意連接內聯網面板
+    ============================================================ -->
+    <section class="consent-panel" id="consent-panel">
+        <h2 class="consent-panel-title">🔒 連接內聯網伺服器</h2>
+
+        <p class="consent-panel-description">
+            iOS Safari 對內聯網（如 923test.local）有額外的私隱保護，
+            需要您手動同意才能傳送測速紀錄。
+            請點擊下方按鈕，然後在彈出的對話框中選擇「允許」。
+        </p>
+
+        <div class="toolbar">
+            <button
+                id="consent-button"
+                class="consent-button"
+                type="button"
+            >
+                ✅ 同意連接內聯網（按我）
+            </button>
+
+            <button
+                id="test-connection-button"
+                class="secondary-button"
+                type="button"
+            >
+                🔄 測試連接
+            </button>
+        </div>
+
+        <div id="consent-status" class="consent-status">
+            ⏳ 尚未連接。請點擊「同意連接內聯網」按鈕。
+        </div>
+    </section>
+
     <section class="average-panel">
         <div class="average-title">
             本頁測速平均
@@ -265,6 +376,7 @@
                 id="upload-records"
                 class="secondary-button"
                 type="button"
+                disabled
             >
                 上傳紀錄
             </button>
@@ -278,6 +390,10 @@
             </button>
         </div>
     </section>
+
+    <div id="api-info" class="api-info">
+        連接狀態：偵測中……
+    </div>
 
     <div class="warning">
         此網頁使用 JavaScript Fetch 讀取外部下載網址。
@@ -304,6 +420,42 @@ const GRADE_RULES = [
     { minPercent: 25, grade: "普通" },
     { minPercent: 0,  grade: "差" }
 ];
+
+/* =====================================================================
+ * API 網址設定 - 自動適應內聯網環境
+ * ===================================================================== */
+
+// 取得當前頁面的主機名稱和協定
+const currentHost = window.location.hostname;
+const currentProtocol = window.location.protocol;
+
+// 判斷是否在內聯網環境（923test.local）
+const isIntranet = currentHost === '923test.local' || currentHost === 'localhost' || currentHost === '127.0.0.1';
+
+// 動態設定 API 網址
+const API_URL = (() => {
+    // 如果在內聯網，使用相對路徑（同源）
+    if (isIntranet) {
+        return '/api/download-results';
+    }
+    
+    // 如果從 GitHub Pages 訪問，嘗試連接到內聯網
+    if (currentProtocol === 'https:') {
+        return 'https://923test.local/api/download-results';
+    }
+    return 'http://923test.local/api/download-results';
+})();
+
+// 健康檢查網址
+const HEALTH_URL = (() => {
+    if (isIntranet) {
+        return '/api/health';
+    }
+    if (currentProtocol === 'https:') {
+        return 'https://923test.local/api/health';
+    }
+    return 'http://923test.local/api/health';
+})();
 
 /* =====================================================================
  * 下載網址清單
@@ -342,8 +494,8 @@ const files = [
 
 /* ===================================================================== */
 
-const API_URL = "http://923test.local/api/download-results";
 const PENDING_KEY = "cvent_pending_download_records_v1";
+const CONSENT_KEY = "cvent_consent_granted_v1";
 
 const fileList =
     document.getElementById("file-list");
@@ -360,6 +512,21 @@ const resetButton =
 const overallAverage =
     document.getElementById("overall-average");
 
+const consentButton =
+    document.getElementById("consent-button");
+
+const testConnectionButton =
+    document.getElementById("test-connection-button");
+
+const consentStatus =
+    document.getElementById("consent-status");
+
+const consentPanel =
+    document.getElementById("consent-panel");
+
+const apiInfo =
+    document.getElementById("api-info");
+
 const fileElements = [];
 
 /*
@@ -369,6 +536,8 @@ const fileElements = [];
 const completedSpeeds = [];
 
 let uploadRunning = false;
+let consentGranted = false;
+let isTestingConnection = false;
 
 /*
  * 全頁測速鎖。
@@ -498,6 +667,211 @@ function createNoCacheURL(originalURL) {
 }
 
 /* =====================================================================
+ * 同意連接管理
+ * ===================================================================== */
+
+function updateConsentStatus(message, type = "info") {
+    const statusMap = {
+        info: 'ℹ️',
+        success: '✅',
+        error: '❌',
+        warning: '⚠️'
+    };
+
+    const icon = statusMap[type] || 'ℹ️';
+    consentStatus.textContent = icon + ' ' + message;
+    consentStatus.className = 'consent-status ' + type;
+}
+
+function updateApiInfo(status, message) {
+    apiInfo.className = 'api-info ' + status;
+    apiInfo.textContent = message;
+}
+
+function setConsentGranted(granted) {
+    consentGranted = granted;
+
+    if (granted) {
+        localStorage.setItem(CONSENT_KEY, 'true');
+        consentButton.disabled = true;
+        consentButton.textContent = '✅ 已同意連接';
+        uploadButton.disabled = false;
+        consentPanel.style.borderColor = '#86efac';
+        consentPanel.style.background = '#f0fdf4';
+        updateConsentStatus('已同意連接內聯網。可以上傳測速紀錄。', 'success');
+        updateApiInfo('success', '✅ 已連接至 ' + API_URL);
+    } else {
+        localStorage.removeItem(CONSENT_KEY);
+        consentButton.disabled = false;
+        consentButton.textContent = '✅ 同意連接內聯網（按我）';
+        uploadButton.disabled = true;
+        consentPanel.style.borderColor = '#f59e0b';
+        consentPanel.style.background = '#fffbeb';
+        updateConsentStatus('尚未連接。請點擊「同意連接內聯網」按鈕。', 'warning');
+        updateApiInfo('warning', '⚠️ 尚未連接內聯網。請先同意連接。');
+    }
+}
+
+// 檢查是否已儲存同意
+function checkStoredConsent() {
+    const stored = localStorage.getItem(CONSENT_KEY);
+    if (stored === 'true') {
+        setConsentGranted(true);
+        return true;
+    }
+    return false;
+}
+
+// 觸發 iOS Safari 的內聯網同意對話框
+async function requestConsent() {
+    if (consentGranted) {
+        return true;
+    }
+
+    updateConsentStatus('正在嘗試連接內聯網…請稍候', 'info');
+    consentButton.disabled = true;
+
+    try {
+        // 方法 1：嘗試 fetch 請求（iOS Safari 會顯示同意對話框）
+        const response = await fetch(HEALTH_URL, {
+            method: 'GET',
+            cache: 'no-store',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            setConsentGranted(true);
+            return true;
+        } else {
+            throw new Error('伺服器回應異常：' + response.status);
+        }
+    } catch (error) {
+        console.error('連接請求失敗：', error);
+
+        // 方法 2：嘗試使用 Image 對象（較輕量）
+        try {
+            await new Promise((resolve, reject) => {
+                const img = new Image();
+                const timeout = setTimeout(() => {
+                    img.src = '';
+                    reject(new Error('圖片請求逾時'));
+                }, 5000);
+
+                img.onload = () => {
+                    clearTimeout(timeout);
+                    resolve();
+                };
+
+                img.onerror = () => {
+                    clearTimeout(timeout);
+                    reject(new Error('圖片請求失敗'));
+                };
+
+                // 使用一個小型圖片或 favicon
+                img.src = HEALTH_URL + '?_=' + Date.now();
+            });
+
+            setConsentGranted(true);
+            return true;
+        } catch (imgError) {
+            console.error('圖片連接失敗：', imgError);
+            
+            // 方法 3：使用 navigator.sendBeacon（部分瀏覽器支援）
+            try {
+                const blob = new Blob(['ping'], { type: 'text/plain' });
+                const sent = navigator.sendBeacon(HEALTH_URL + '?_=' + Date.now(), blob);
+                
+                if (sent) {
+                    setConsentGranted(true);
+                    return true;
+                }
+            } catch (beaconError) {
+                console.error('Beacon 發送失敗：', beaconError);
+            }
+
+            // 所有方法都失敗
+            const errorMsg = error.message || String(error);
+            if (errorMsg.includes('Failed to fetch') || errorMsg.includes('Load failed')) {
+                updateConsentStatus(
+                    '連接失敗。請確認：\n1. 您已連接內聯網（923test.local）\n2. 伺服器正在執行\n3. 在彈出的對話框中選擇「允許」\n\n錯誤：' + errorMsg,
+                    'error'
+                );
+            } else {
+                updateConsentStatus('連接失敗：' + errorMsg, 'error');
+            }
+
+            consentButton.disabled = false;
+            return false;
+        }
+    } finally {
+        consentButton.disabled = false;
+    }
+}
+
+// 測試連接
+async function testConnection() {
+    if (isTestingConnection) {
+        return;
+    }
+
+    isTestingConnection = true;
+    testConnectionButton.disabled = true;
+    updateConsentStatus('正在測試連接…', 'info');
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(HEALTH_URL, {
+            method: 'GET',
+            cache: 'no-store',
+            credentials: 'same-origin',
+            signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (response.ok) {
+            const data = await response.json().catch(() => ({}));
+            updateConsentStatus(
+                '✅ 連接成功！伺服器回應正常。' + 
+                (data.status ? ' 狀態：' + data.status : ''),
+                'success'
+            );
+            updateApiInfo('success', '✅ 已連接到 ' + HEALTH_URL + '，伺服器正常');
+            
+            if (!consentGranted) {
+                setConsentGranted(true);
+            }
+        } else {
+            updateConsentStatus(
+                '⚠️ 伺服器回應異常：HTTP ' + response.status,
+                'error'
+            );
+            updateApiInfo('error', '⚠️ 伺服器回應異常：HTTP ' + response.status);
+        }
+    } catch (error) {
+        console.error('測試連接失敗：', error);
+        
+        let message = error.message || String(error);
+        if (error.name === 'AbortError') {
+            message = '連接逾時（5秒）';
+        } else if (message.includes('Failed to fetch') || message.includes('Load failed')) {
+            message = '無法連接，可能是 CORS 或網路問題。請點擊「同意連接內聯網」按鈕。';
+        }
+        
+        updateConsentStatus('❌ 連接失敗：' + message, 'error');
+        updateApiInfo('error', '❌ 無法連接到 ' + HEALTH_URL + '：' + message);
+    } finally {
+        isTestingConnection = false;
+        testConnectionButton.disabled = false;
+    }
+}
+
+/* =====================================================================
  * 本頁平均速度
  * ===================================================================== */
 
@@ -618,6 +992,13 @@ async function flushPendingRecords() {
         return;
     }
 
+    // 檢查是否已獲得同意
+    if (!consentGranted) {
+        uploadStatus.className = "status error";
+        uploadStatus.textContent = "⚠️ 請先點擊「同意連接內聯網」按鈕才能上傳";
+        return;
+    }
+
     const records = getPendingRecords();
 
     if (records.length === 0) {
@@ -722,6 +1103,15 @@ async function flushPendingRecords() {
 
         if (error.name === "AbortError") {
             message = "連線逾時";
+        }
+
+        // 如果上傳失敗，可能是同意過期，嘗試重新取得同意
+        if (message.includes('Failed to fetch') || message.includes('Load failed')) {
+            uploadStatus.className = "status error";
+            uploadStatus.textContent = 
+                "⚠️ 上傳失敗：無法連接到伺服器。請重新點擊「同意連接內聯網」按鈕。";
+            setConsentGranted(false);
+            return;
         }
 
         uploadStatus.className =
@@ -1360,11 +1750,27 @@ files.forEach(file => {
  * 按鈕事件
  * ===================================================================== */
 
+// 同意連接按鈕
+consentButton.addEventListener(
+    "click",
+    async () => {
+        await requestConsent();
+    }
+);
+
+// 測試連接按鈕
+testConnectionButton.addEventListener(
+    "click",
+    testConnection
+);
+
+// 上傳紀錄按鈕
 uploadButton.addEventListener(
     "click",
     flushPendingRecords
 );
 
+// 清除結果按鈕
 resetButton.addEventListener(
     "click",
     () => {
@@ -1430,6 +1836,27 @@ window.addEventListener(
         });
     }
 );
+
+/* =====================================================================
+ * 初始化
+ * ===================================================================== */
+
+// 檢查是否已儲存同意
+const hasConsent = checkStoredConsent();
+
+// 更新 API 資訊顯示
+if (isIntranet) {
+    updateApiInfo('success', '✅ 當前在內聯網環境，API：' + API_URL);
+} else {
+    updateApiInfo('warning', '⚠️ 當前從外部訪問（' + currentHost + '），請先同意連接內聯網');
+}
+
+// 如果已有同意，自動測試連接
+if (hasConsent) {
+    setTimeout(() => {
+        testConnection();
+    }, 500);
+}
 
 updateOverallAverage();
 updateUploadStatus();
