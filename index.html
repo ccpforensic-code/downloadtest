@@ -1,432 +1,1438 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機定時同步下載器 (暫停/結束 控制版)</title>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+
+    <title>檔案下載速度測試</title>
+
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 20px; background: #f4f7f6; color: #333; }
-        .card { background: white; max-width: 540px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .clock { font-size: 32px; font-weight: bold; margin: 5px 0; color: #007bff; }
-        .time-sync-info { font-size: 12px; color: #28a745; margin-bottom: 10px; font-weight: bold; }
-        input[type="time"], input[type="number"] { font-size: 18px; padding: 6px; margin: 5px 0; text-align: center; }
-        input[type="number"] { width: 90px; }
-        .btn { font-size: 15px; padding: 10px 15px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin: 5px 0; width: 100%; transition: 0.2s; }
-        .btn-arm-7 { background: #28a745; }
-        .btn-arm-bench { background: #6f42c1; }
-        .btn-test { background: #6c757d; }
-        .btn-bench { background: #17a2b8; }
-        .btn-pause { background: #ffc107; color: #333; width: 48%; display: inline-block; }
-        .btn-stop { background: #dc3545; width: 48%; display: inline-block; }
-        .btn:disabled { background: #cccccc !important; color: #666 !important; cursor: not-allowed; }
-        .status { margin-top: 15px; font-size: 15px; font-weight: bold; color: #007bff; }
-        .log-box { font-size: 12px; color: #333; text-align: left; background: #eef; padding: 12px; border-radius: 6px; margin-top: 15px; max-height: 350px; overflow-y: auto; line-height: 1.6; }
-        .log-entry { padding: 6px 0; border-bottom: 1px dashed #ccc; }
-        .highlight { color: #d9534f; font-weight: bold; }
-        .speed { color: #007bff; font-weight: bold; }
-        .bench-tag { background: #17a2b8; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .section-title { font-size: 14px; font-weight: bold; margin-top: 12px; margin-bottom: 5px; color: #555; text-align: left; }
-        .setting-row { margin: 8px 0; font-size: 14px; }
-        .ctrl-group { margin-top: 10px; display: flex; justify-content: space-between; }
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f3f4f6;
+            color: #111827;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                "PingFang TC",
+                "Microsoft JhengHei",
+                sans-serif;
+        }
+
+        .container {
+            width: min(920px, 100%);
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: clamp(25px, 5vw, 36px);
+        }
+
+        .description {
+            margin: 0 0 20px;
+            color: #4b5563;
+            line-height: 1.7;
+        }
+
+        .average-panel {
+            margin: 18px 0;
+            padding: 16px 18px;
+            background: #eff6ff;
+            border: 1px solid #93c5fd;
+            border-radius: 12px;
+        }
+
+        .average-title {
+            margin-bottom: 6px;
+            color: #1e3a8a;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .average-value {
+            color: #1e40af;
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 18px 0;
+        }
+
+        .file-card {
+            margin: 14px 0;
+            padding: 18px;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 14px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+        }
+
+        .file-name {
+            margin-bottom: 7px;
+            font-size: 18px;
+            font-weight: 700;
+            word-break: break-all;
+        }
+
+        .file-url {
+            margin-bottom: 14px;
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1.5;
+            word-break: break-all;
+        }
+
+        .file-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        button {
+            min-height: 46px;
+            padding: 10px 18px;
+            border: 0;
+            border-radius: 9px;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .secondary-button {
+            background: #374151;
+        }
+
+        .secondary-button:hover:not(:disabled) {
+            background: #1f2937;
+        }
+
+        .save-button {
+            display: none;
+            background: #047857;
+        }
+
+        .save-button:hover:not(:disabled) {
+            background: #065f46;
+        }
+
+        progress {
+            display: none;
+            width: 100%;
+            height: 19px;
+            margin-top: 15px;
+        }
+
+        .status {
+            min-height: 25px;
+            margin-top: 12px;
+            color: #374151;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        .success {
+            color: #047857;
+            font-weight: 600;
+        }
+
+        .error {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .upload-panel {
+            margin-top: 24px;
+            padding: 18px;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 14px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+        }
+
+        .upload-panel-title {
+            margin: 0 0 8px;
+            font-size: 19px;
+            font-weight: 700;
+        }
+
+        .upload-panel-description {
+            margin: 0;
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        .warning {
+            margin-top: 20px;
+            padding: 14px;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 10px;
+            color: #92400e;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 14px;
+            }
+
+            .file-card {
+                padding: 15px;
+            }
+
+            .file-actions {
+                display: block;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .file-actions button + button {
+                margin-top: 10px;
+            }
+        }
     </style>
 </head>
+
 <body>
+<div class="container">
+    <h1>檔案下載速度測試</h1>
 
-<div class="card">
-    <h2>⏰ 多機定時同步下載器</h2>
-    <div id="currentTime" class="clock">00:00:00</div>
-    <div id="syncStatus" class="time-sync-info">⏳ 正在與香港標準時間對時...</div>
+    <p class="description">
+        點擊個別檔案開始下載及測速。每次請求都會加入隨機參數，
+        並要求瀏覽器不要使用 HTTP 快取。
+        測速完成後可自行選擇是否儲存檔案。
+        測速紀錄只會先儲存在此瀏覽器，
+        必須按下「上傳紀錄」才會上傳至 Server。
+    </p>
 
-    <div class="setting-row">
-        <label for="targetTime"><b>預計下載時間 (HKT)：</b></label><br>
-        <input type="time" id="targetTime" step="1">
-    </div>
-
-    <div class="setting-row">
-        <label for="durationInput"><b>7個檔案持續下載時間 (秒)：</b></label><br>
-        <input type="number" id="durationInput" value="10" min="1" max="300"> 秒
-    </div>
-
-    <div class="section-title">📅 排程任務選擇：</div>
-    <button id="start7Btn" class="btn btn-arm-7" onclick="armTimer('7files')">🟢 排程下載：7 個 .ai 檔案 (持續模式)</button>
-    <button id="startBenchBtn" class="btn btn-arm-bench" onclick="armTimer('bench25m')">🟣 排程下載：獨立測試網路極速 (25MB)</button>
-
-    <div id="status" class="status">狀態：等待設定時間...</div>
-
-    <!-- 🎮 持續下載 控制按鈕區 -->
-    <div class="ctrl-group">
-        <button id="pauseBtn" class="btn btn-pause" onclick="togglePause()" disabled>⏸️ 暫停下載</button>
-        <button id="stopBtn" class="btn btn-stop" onclick="stopDownload()" disabled>🛑 結束下載</button>
-    </div>
-
-    <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-
-    <div class="section-title">🧪 獨立手動測試區：</div>
-    <button class="btn btn-bench" onclick="runBenchmark()">⚡ 獨立測試網路極速 (25MB)</button>
-    <button class="btn btn-test" onclick="executeDownload7Loop()">（可選）手動觸發 7 檔案持續下載</button>
-
-    <div class="log-box">
-        <b>📝 下載記錄與速率分析 (最新在最上)：</b>
-        <div id="logContainer">
-            <div style="color: #888;">(等待啟動...)</div>
+    <section class="average-panel">
+        <div class="average-title">
+            本頁測速平均
         </div>
+
+        <div id="overall-average" class="average-value">
+            尚未完成任何測速
+        </div>
+    </section>
+
+    <div id="file-list"></div>
+
+    <section class="upload-panel">
+        <h2 class="upload-panel-title">
+            測速紀錄上傳
+        </h2>
+
+        <p class="upload-panel-description">
+            下載及測速完成後，紀錄會先儲存在此瀏覽器。
+            請按下「上傳紀錄」傳送到 Server。
+        </p>
+
+        <div id="upload-status" class="status">
+            速度紀錄：檢查中……
+        </div>
+
+        <div class="toolbar">
+            <button
+                id="upload-records"
+                class="secondary-button"
+                type="button"
+            >
+                上傳紀錄
+            </button>
+
+            <button
+                id="reset-results"
+                class="secondary-button"
+                type="button"
+            >
+                清除畫面結果
+            </button>
+        </div>
+    </section>
+
+    <div class="warning">
+        此網頁使用 JavaScript Fetch 讀取外部下載網址。
+        如果外部伺服器不允許跨來源存取（CORS），
+        瀏覽器可能會阻止測速，並顯示
+        「Failed to fetch」或 CORS 錯誤。
     </div>
 </div>
 
 <script>
-    const benchmarkInstallerUrl = "https://speed.cloudflare.com/__down?bytes=25000000";
+/* =====================================================================
+ * 測試及 Server 紀錄設定
+ *
+ * 以下資料不會顯示於畫面，
+ * 但仍會隨測速紀錄傳送至 Server。
+ * ===================================================================== */
 
-    const fileUrls = [
-        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/25471d1b885b40259ecb57778db9272e.ai",
-        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/7d91438e5a634cef9433396b66174af8.ai",
-        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/8261c18c11e5423aa251ffde02edec2e.ai",
-        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/d936be7a88d549f3bfa7388c09f3868b.ai",
-        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/409adf45fd48497abd4609d995dec523.ai",
-        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/661b4023226143729514b23c34f5b2b0.ai",
-        "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/fd0dba4d73ae4225bce3d445ee6dd1f6.ai"
-    ];
+const BANDWIDTH_LIMIT_MBPS = 12;
+const TEST_PROFILE = "wifi-12mbps";
 
-    let targetTimeString = "";
-    let scheduledTaskMode = ""; // '7files' 或 'bench25m'
-    let timeOffsetOffsetMs = 0;
+const GRADE_RULES = [
+    { minPercent: 75, grade: "佳" },
+    { minPercent: 50, grade: "好" },
+    { minPercent: 25, grade: "普通" },
+    { minPercent: 0,  grade: "差" }
+];
 
-    // 🎮 持續下載 控制狀態變數
-    let isDownloadingLoop = false;
-    let isPaused = false;
-    let shouldStop = false;
+/* =====================================================================
+ * 下載網址清單
+ * ===================================================================== */
 
-    // 歷史紀錄置頂輔助函式
-    function prependLog(htmlContent) {
-        const container = document.getElementById("logContainer");
-        if (container.innerText.includes("(等待啟動...)")) {
-            container.innerHTML = "";
-        }
-        const newDiv = document.createElement("div");
-        newDiv.className = "log-entry";
-        newDiv.innerHTML = htmlContent;
-        container.insertBefore(newDiv, container.firstChild);
+const files = [
+    {
+        linkNumber: 8,
+        label: "Link 1",
+        name: "Cvent File 8.23 MB",
+        saveAs: "Cvent_File_1.pdf",
+        url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/241e3b3db2cc47e0bb056f054e4532dc.pdf"
+    },
+    {
+        linkNumber: 9,
+        label: "Link 2",
+        name: "Cvent File 9.73 MB",
+        saveAs: "Cvent_File_2.pdf",
+        url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/1915ccb2f13946f9acffc74f82c529c2.pdf"
+    },
+    {
+        linkNumber: 11,
+        label: "Link 3",
+        name: "Cvent File (.ai)",
+        saveAs: "Cvent_File_3.ai",
+        url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/25471d1b885b40259ecb57778db9272e.ai"
+    },
+    {
+        linkNumber: 10,
+        label: "Cloudflare 20 MB 測速",
+        name: "Cloudflare_20MB.bin",
+        saveAs: "Cloudflare_20MB.bin",
+        url: "https://speed.cloudflare.com/__down?bytes=20000000"
+    }
+];
+
+/* ===================================================================== */
+
+const API_URL = "/api/download-results";
+const PENDING_KEY = "cvent_pending_download_records_v1";
+
+const fileList =
+    document.getElementById("file-list");
+
+const uploadStatus =
+    document.getElementById("upload-status");
+
+const uploadButton =
+    document.getElementById("upload-records");
+
+const resetButton =
+    document.getElementById("reset-results");
+
+const overallAverage =
+    document.getElementById("overall-average");
+
+const fileElements = [];
+
+/*
+ * 儲存本頁成功完成的測速。
+ * 此陣列只用來計算畫面平均，不會上傳至 Server。
+ */
+const completedSpeeds = [];
+
+let uploadRunning = false;
+
+/*
+ * 全頁測速鎖。
+ *
+ * 同一時間只允許一個測速，避免 iOS 同時執行多個 Fetch，
+ * 導致其中一個請求被瀏覽器取消。
+ */
+let downloadRunning = false;
+
+function newID() {
+    if (
+        window.crypto &&
+        typeof window.crypto.randomUUID === "function"
+    ) {
+        return window.crypto.randomUUID();
     }
 
-    // 🌐 香港標準時間校正
-    async function syncTimeWithHKT() {
-        const syncElem = document.getElementById("syncStatus");
-        const timeEndpoints = [
-            "https://timeapi.io/api/time/current/zone?timeZone=Asia/Hong_Kong",
-            "https://worldtimeapi.org/api/timezone/Asia/Hong_Kong"
-        ];
+    return (
+        Date.now().toString(36) +
+        "-" +
+        Math.random().toString(36).substring(2)
+    );
+}
 
-        let success = false;
-        for (const endpoint of timeEndpoints) {
+let sessionID =
+    sessionStorage.getItem("cvent_session_id");
+
+if (!sessionID) {
+    sessionID = newID();
+
+    sessionStorage.setItem(
+        "cvent_session_id",
+        sessionID
+    );
+}
+
+function gradeSpeed(averageMbps) {
+    const percent =
+        averageMbps /
+        BANDWIDTH_LIMIT_MBPS *
+        100;
+
+    const rule =
+        GRADE_RULES.find(
+            item => percent >= item.minPercent
+        ) ||
+        GRADE_RULES[GRADE_RULES.length - 1];
+
+    return {
+        percent: Number(percent.toFixed(1)),
+        grade: rule.grade
+    };
+}
+
+function formatBytes(bytes) {
+    if (!Number.isFinite(bytes) || bytes < 0) {
+        return "未知";
+    }
+
+    const units = ["B", "KB", "MB", "GB", "TB"];
+
+    let value = bytes;
+    let index = 0;
+
+    while (
+        value >= 1024 &&
+        index < units.length - 1
+    ) {
+        value /= 1024;
+        index++;
+    }
+
+    return (
+        value.toFixed(index === 0 ? 0 : 2) +
+        " " +
+        units[index]
+    );
+}
+
+function pad(value) {
+    return String(value).padStart(2, "0");
+}
+
+function createUniqueFilename(originalName) {
+    const dot = originalName.lastIndexOf(".");
+
+    const base =
+        dot > 0
+            ? originalName.substring(0, dot)
+            : originalName;
+
+    const extension =
+        dot > 0
+            ? originalName.substring(dot)
+            : "";
+
+    const now = new Date();
+
+    const timestamp =
+        now.getFullYear() +
+        pad(now.getMonth() + 1) +
+        pad(now.getDate()) +
+        "-" +
+        pad(now.getHours()) +
+        pad(now.getMinutes()) +
+        pad(now.getSeconds());
+
+    return (
+        base +
+        "_" +
+        timestamp +
+        "_" +
+        newID().substring(0, 8) +
+        extension
+    );
+}
+
+function createNoCacheURL(originalURL) {
+    const url = new URL(originalURL);
+
+    url.searchParams.set(
+        "_nocache",
+        newID()
+    );
+
+    return url.toString();
+}
+
+/* =====================================================================
+ * 本頁平均速度
+ * ===================================================================== */
+
+function updateOverallAverage() {
+    if (completedSpeeds.length === 0) {
+        overallAverage.textContent =
+            "尚未完成任何測速";
+
+        return;
+    }
+
+    const totalMbps =
+        completedSpeeds.reduce(
+            (sum, speed) => sum + speed,
+            0
+        );
+
+    const averageMbps =
+        totalMbps / completedSpeeds.length;
+
+    const averageMBps =
+        averageMbps / 8;
+
+    overallAverage.textContent =
+        "已完成 " +
+        completedSpeeds.length +
+        " 次｜平均 " +
+        averageMBps.toFixed(2) +
+        " MB/s（" +
+        averageMbps.toFixed(2) +
+        " Mbps）";
+}
+
+function addCompletedSpeed(averageMbps) {
+    if (
+        !Number.isFinite(averageMbps) ||
+        averageMbps < 0
+    ) {
+        return;
+    }
+
+    completedSpeeds.push(averageMbps);
+    updateOverallAverage();
+}
+
+/* =====================================================================
+ * 待上傳紀錄
+ * ===================================================================== */
+
+function getPendingRecords() {
+    try {
+        const records = JSON.parse(
+            localStorage.getItem(PENDING_KEY) || "[]"
+        );
+
+        return Array.isArray(records)
+            ? records
+            : [];
+    } catch (_) {
+        return [];
+    }
+}
+
+function savePendingRecords(records) {
+    localStorage.setItem(
+        PENDING_KEY,
+        JSON.stringify(records)
+    );
+
+    updateUploadStatus();
+}
+
+function queueRecord(record) {
+    const records = getPendingRecords();
+
+    const alreadyExists = records.some(
+        item => item.record_id === record.record_id
+    );
+
+    if (!alreadyExists) {
+        records.push(record);
+        savePendingRecords(records);
+    }
+}
+
+function updateUploadStatus(message = "") {
+    const count = getPendingRecords().length;
+
+    if (message) {
+        uploadStatus.textContent =
+            message +
+            "｜未上傳紀錄：" +
+            count +
+            " 筆";
+
+        return;
+    }
+
+    if (count === 0) {
+        uploadStatus.className =
+            "status success";
+
+        uploadStatus.textContent =
+            "目前沒有等待上傳的速度紀錄";
+    } else {
+        uploadStatus.className =
+            "status";
+
+        uploadStatus.textContent =
+            "等待手動上傳至 Server 的紀錄：" +
+            count +
+            " 筆";
+    }
+}
+
+async function flushPendingRecords() {
+    if (uploadRunning) {
+        return;
+    }
+
+    const records = getPendingRecords();
+
+    if (records.length === 0) {
+        updateUploadStatus();
+        return;
+    }
+
+    uploadRunning = true;
+    uploadButton.disabled = true;
+
+    uploadStatus.className = "status";
+    updateUploadStatus("正在上傳");
+
+    const sentIDs = new Set(
+        records.map(record => record.record_id)
+    );
+
+    const controller =
+        new AbortController();
+
+    const timeout = setTimeout(() => {
+        controller.abort();
+    }, 8000);
+
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            cache: "no-store",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                records
+            }),
+            signal: controller.signal
+        });
+
+        if (!response.ok) {
+            const allow =
+                response.headers.get("Allow");
+
+            let serverMessage = "";
+
             try {
-                const startReq = performance.now();
-                const response = await fetch(endpoint, { cache: "no-store" });
-                if (!response.ok) continue;
-                
-                const data = await response.json();
-                const endReq = performance.now();
-                const networkLatency = (endReq - startReq) / 2;
-
-                let serverMs = 0;
-                if (data.dateTime) serverMs = new Date(data.dateTime).getTime();
-                else if (data.datetime) serverMs = new Date(data.datetime).getTime();
-
-                if (serverMs > 0) {
-                    timeOffsetOffsetMs = (serverMs + networkLatency) - Date.now();
-                    success = true;
-                    break;
-                }
-            } catch (e) {}
-        }
-
-        if (!success) {
-            try {
-                const startReq = performance.now();
-                const response = await fetch("https://www.cloudflare.com/cdn-cgi/trace", { cache: "no-store" });
-                const text = await response.text();
-                const endReq = performance.now();
-                
-                const tsMatch = text.match(/ts=(.+)/);
-                if (tsMatch && tsMatch[1]) {
-                    const serverMs = parseFloat(tsMatch[1]) * 1000;
-                    const networkLatency = (endReq - startReq) / 2;
-                    timeOffsetOffsetMs = (serverMs + networkLatency) - Date.now();
-                    success = true;
-                }
-            } catch (e) {}
-        }
-
-        if (success) {
-            const offsetSec = (timeOffsetOffsetMs / 1000).toFixed(2);
-            syncElem.innerText = `✅ 已對齊香港標準時間 (機時誤差: ${offsetSec > 0 ? '+' : ''}${offsetSec}秒)`;
-            syncElem.style.color = "#28a745";
-        } else {
-            syncElem.innerText = "⚠️ 網路對時失敗，目前使用裝置本機時間";
-            syncElem.style.color = "#dc3545";
-        }
-    }
-
-    function updateClock() {
-        const correctedNow = new Date(Date.now() + timeOffsetOffsetMs);
-        
-        const hrs = String(correctedNow.getHours()).padStart(2, '0');
-        const mins = String(correctedNow.getMinutes()).padStart(2, '0');
-        const secs = String(correctedNow.getSeconds()).padStart(2, '0');
-        const currentTimeStr = `${hrs}:${mins}:${secs}`;
-        
-        document.getElementById("currentTime").innerText = currentTimeStr;
-
-        if (targetTimeString && currentTimeStr === targetTimeString) {
-            triggerDownload();
-        }
-    }
-
-    syncTimeWithHKT();
-    setInterval(updateClock, 1000);
-
-    function generateRandomFileName(prefix, index = "") {
-        const now = new Date(Date.now() + timeOffsetOffsetMs);
-        const dateStr = now.getFullYear() +
-            String(now.getMonth() + 1).padStart(2, '0') +
-            String(now.getDate()).padStart(2, '0') + "_" +
-            String(now.getHours()).padStart(2, '0') +
-            String(now.getMinutes()).padStart(2, '0') +
-            String(now.getSeconds()).padStart(2, '0');
-        
-        const randomStr = Math.random().toString(36).substring(2, 6);
-        return `${prefix}${index ? index + '_' : ''}${dateStr}_${randomStr}`;
-    }
-
-    function formatBytes(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    function armTimer(mode) {
-        const inputVal = document.getElementById("targetTime").value;
-        if (!inputVal) return alert("請先選擇時間！");
-        targetTimeString = inputVal.length === 5 ? `${inputVal}:00` : inputVal;
-        scheduledTaskMode = mode;
-
-        const duration = document.getElementById("durationInput").value || 10;
-        const modeText = mode === '7files' ? `【7個檔案持續 ${duration} 秒下載】` : "【獨立測試網路極速 (25MB)】";
-
-        document.getElementById("status").innerText = `已排程！將在 ${targetTimeString} (HKT) 執行 ${modeText}`;
-        document.getElementById("status").style.color = "#28a745";
-        
-        document.getElementById("start7Btn").disabled = true;
-        document.getElementById("startBenchBtn").disabled = true;
-    }
-
-    function triggerDownload() {
-        if (scheduledTaskMode === '7files') {
-            document.getElementById("status").innerText = "🚀 時間到！開始持續下載 7 個檔案...";
-            document.getElementById("status").style.color = "#007bff";
-            executeDownload7Loop();
-        } else if (scheduledTaskMode === 'bench25m') {
-            document.getElementById("status").innerText = "🚀 時間到！開始執行極速 25MB 下載...";
-            document.getElementById("status").style.color = "#6f42c1";
-            runBenchmark();
-        }
-        targetTimeString = "";
-        scheduledTaskMode = "";
-    }
-
-    async function fetchAndSaveSingle(fileUrl, fileName, triggerBrowserSave = true) {
-        const startTime = performance.now();
-        const urlsToTry = [
-            `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}nocache=${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            `https://corsproxy.io/?${encodeURIComponent(fileUrl)}`
-        ];
-
-        for (let i = 0; i < urlsToTry.length; i++) {
-            try {
-                const target = urlsToTry[i];
-                const response = await fetch(target, { cache: "no-store" });
-                if (!response.ok) continue;
-                
-                const blob = await response.blob();
-                if (blob.size === 0) continue;
-
-                const endTime = performance.now();
-                const durationSec = (endTime - startTime) / 1000;
-                
-                const bytes = blob.size;
-                const sizeFormatted = formatBytes(bytes);
-                const mbps = durationSec > 0 ? ((bytes * 8) / (1000000 * durationSec)).toFixed(2) : "0.00";
-
-                if (triggerBrowserSave) {
-                    const blobUrl = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = blobUrl;
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-                }
-
-                return {
-                    success: true,
-                    fileName,
-                    bytes,
-                    sizeFormatted,
-                    durationSec: durationSec.toFixed(2),
-                    mbps
-                };
-            } catch (err) {}
-        }
-
-        if (triggerBrowserSave) {
-            const a = document.createElement("a");
-            a.href = fileUrl;
-            a.target = "_blank";
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        return { success: false, fileName };
-    }
-
-    // 獨立測試網路極速 (25MB)
-    async function runBenchmark() {
-        document.getElementById("status").innerText = "⏳ 正在測量網路極速 (25MB)...";
-
-        const benchRes = await fetchAndSaveSingle(benchmarkInstallerUrl, "speedtest_25mb.bin", true);
-        const timeStr = new Date().toLocaleTimeString();
-
-        if (benchRes.success) {
-            prependLog(`
-                <span class="bench-tag">25MB 極速測試 [${timeStr}]</span><br>
-                📦 檔案大小：<b>${benchRes.sizeFormatted}</b> | 耗時：<span class="highlight">${benchRes.durationSec} 秒</span><br>
-                🚀 <b>極速上限：<span class="speed">${benchRes.mbps} Mbps</span></b>
-            `);
-            document.getElementById("status").innerText = "✅ 25MB 極速測試完成！";
-        } else {
-            prependLog(`❌ [${timeStr}] 25MB 極速測試失敗，已觸發瀏覽器原生存取。`);
-            document.getElementById("status").innerText = "⚠️ 測試完成 (觸發原生下載)";
-        }
-        
-        document.getElementById("start7Btn").disabled = false;
-        document.getElementById("startBenchBtn").disabled = false;
-    }
-
-    // 🎮 暫停與繼續切換
-    function togglePause() {
-        if (!isDownloadingLoop) return;
-        isPaused = !isPaused;
-        const pauseBtn = document.getElementById("pauseBtn");
-        
-        if (isPaused) {
-            pauseBtn.innerText = "▶️ 繼續下載";
-            pauseBtn.style.backgroundColor = "#28a745";
-            pauseBtn.style.color = "#fff";
-            document.getElementById("status").innerText = "⏸️ 下載已暫停...";
-            document.getElementById("status").style.color = "#ffc107";
-        } else {
-            pauseBtn.innerText = "⏸️ 暫停下載";
-            pauseBtn.style.backgroundColor = "#ffc107";
-            pauseBtn.style.color = "#333";
-            document.getElementById("status").innerText = "👉 正在執行持續下載中...";
-            document.getElementById("status").style.color = "#007bff";
-        }
-    }
-
-    // 🎮 手動強行結束下載
-    function stopDownload() {
-        if (!isDownloadingLoop) return;
-        shouldStop = true;
-        isPaused = false; // 若在暫停狀態，解除暫停以便退出迴圈
-    }
-
-    // 7個檔案持續時間下載 (支援暫停/結束控制)
-    async function executeDownload7Loop() {
-        const durationSec = parseInt(document.getElementById("durationInput").value) || 10;
-        const startTimeStr = new Date().toLocaleTimeString();
-
-        // 重置控制狀態
-        isDownloadingLoop = true;
-        isPaused = false;
-        shouldStop = false;
-
-        document.getElementById("pauseBtn").disabled = false;
-        document.getElementById("stopBtn").disabled = false;
-        document.getElementById("start7Btn").disabled = true;
-        document.getElementById("startBenchBtn").disabled = true;
-
-        document.getElementById("status").innerText = `👉 正在執行 ${durationSec} 秒持續下載中...`;
-        document.getElementById("status").style.color = "#007bff";
-
-        let downloadedCount = 0;
-        let totalBytes = 0;
-        let fileIndex = 0;
-        
-        let accumulatedActiveTimeMs = 0; // 記錄實際下載耗時 (扣除暫停時間)
-        let segmentStartMs = performance.now();
-
-        while (accumulatedActiveTimeMs < (durationSec * 1000) && !shouldStop) {
-            // 處理暫停邏輯
-            if (isPaused) {
-                await sleep(200);
-                segmentStartMs = performance.now(); // 重置段落開始時間
-                continue;
+                serverMessage =
+                    (await response.text()).trim();
+            } catch (_) {
+                // 無法讀取 Server 回應內容
             }
 
-            const currentUrl = fileUrls[fileIndex % fileUrls.length];
-            const fileName = generateRandomFileName("file", (fileIndex % 7) + 1) + ".ai";
-            
-            const res = await fetchAndSaveSingle(currentUrl, fileName, true);
-            
-            if (res.success) {
-                totalBytes += res.bytes;
+            if (response.status === 405) {
+                throw new Error(
+                    "HTTP 405：Server 不允許使用 POST 方法" +
+                    (
+                        allow
+                            ? "（允許方法：" + allow + "）"
+                            : ""
+                    ) +
+                    "。請檢查 /api/download-results 的 Nginx 或後端設定"
+                );
             }
-            downloadedCount++;
-            fileIndex++;
 
-            // 累加實際活動時間
-            const now = performance.now();
-            accumulatedActiveTimeMs += (now - segmentStartMs);
-            segmentStartMs = now;
-
-            // 短間隔 (30ms - 60ms 隨機微延遲)
-            const shortDelay = Math.floor(Math.random() * 30) + 30;
-            await sleep(shortDelay);
+            throw new Error(
+                "HTTP " +
+                response.status +
+                (
+                    serverMessage
+                        ? "：" + serverMessage.substring(0, 200)
+                        : ""
+                )
+            );
         }
 
-        const actualDurationSec = accumulatedActiveTimeMs / 1000;
-        const totalSizeFormatted = formatBytes(totalBytes);
-        const avgMbps = actualDurationSec > 0 ? ((totalBytes * 8) / (1000000 * actualDurationSec)).toFixed(2) : "0.00";
+        const remaining =
+            getPendingRecords().filter(
+                record => {
+                    return !sentIDs.has(
+                        record.record_id
+                    );
+                }
+            );
 
-        const statusTag = shouldStop ? "🛑 手動結束" : "✅ 正常完成";
+        savePendingRecords(remaining);
 
-        prependLog(`
-            <b>🔄 7檔案持續下載 [${statusTag}] [${startTimeStr}]</b><br>
-            ⏱️ 實際下載時間：${actualDurationSec.toFixed(2)} 秒 (預設 ${durationSec} 秒)<br>
-            📥 成功下載次數：<b>${downloadedCount} 次</b><br>
-            📊 總數據流量：<b>${totalSizeFormatted}</b><br>
-            🚀 <b>平均下載速率：<span class="speed">${avgMbps} Mbps</span></b>
-        `);
+        uploadStatus.className =
+            "status success";
 
-        document.getElementById("status").innerText = shouldStop ? "🛑 下載任務已被使用者終止！" : `✅ ${durationSec} 秒持續下載任務完成！`;
-        
-        // 重置按鈕狀態
-        isDownloadingLoop = false;
-        document.getElementById("pauseBtn").disabled = true;
-        document.getElementById("stopBtn").disabled = true;
-        document.getElementById("pauseBtn").innerText = "⏸️ 暫停下載";
-        document.getElementById("pauseBtn").style.backgroundColor = "#ffc107";
-        document.getElementById("pauseBtn").style.color = "#333";
-        
-        document.getElementById("start7Btn").disabled = false;
-        document.getElementById("startBenchBtn").disabled = false;
+        updateUploadStatus(
+            "成功上傳 " +
+            records.length +
+            " 筆紀錄"
+        );
+    } catch (error) {
+        console.error(
+            "紀錄上傳失敗：",
+            error
+        );
+
+        let message =
+            error.message || String(error);
+
+        if (error.name === "AbortError") {
+            message = "連線逾時";
+        }
+
+        uploadStatus.className =
+            "status error";
+
+        updateUploadStatus(
+            "上傳失敗：" + message
+        );
+    } finally {
+        clearTimeout(timeout);
+
+        uploadRunning = false;
+        uploadButton.disabled = false;
     }
+}
+
+/* =====================================================================
+ * 檔案儲存
+ *
+ * 測速完成時不會自動打開儲存視窗。
+ * 使用者可自行點擊「儲存檔案（可選）」。
+ * ===================================================================== */
+
+function clearPreparedFile(elements) {
+    if (elements.objectURL) {
+        URL.revokeObjectURL(
+            elements.objectURL
+        );
+    }
+
+    elements.objectURL = null;
+    elements.downloadFilename = null;
+
+    elements.saveButton.style.display =
+        "none";
+
+    elements.saveButton.disabled = true;
+}
+
+function prepareFileForSaving(
+    elements,
+    blob,
+    filename
+) {
+    clearPreparedFile(elements);
+
+    elements.objectURL =
+        URL.createObjectURL(blob);
+
+    elements.downloadFilename =
+        filename;
+
+    elements.saveButton.disabled = false;
+
+    elements.saveButton.style.display =
+        "inline-block";
+}
+
+function savePreparedFile(elements) {
+    if (
+        !elements.objectURL ||
+        !elements.downloadFilename
+    ) {
+        return;
+    }
+
+    const link =
+        document.createElement("a");
+
+    link.href =
+        elements.objectURL;
+
+    link.download =
+        elements.downloadFilename;
+
+    link.style.display = "none";
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    /*
+     * 不立即 revoke，避免 Android／iOS 尚未完成
+     * 下載處理時，object URL 已被刪除。
+     *
+     * URL 會在重新測試、清除畫面或離開頁面時釋放。
+     */
+}
+
+/* =====================================================================
+ * 全頁測速鎖
+ * ===================================================================== */
+
+function setDownloadButtonsLocked(
+    locked,
+    activeElements = null
+) {
+    fileElements.forEach(elements => {
+        elements.button.disabled = locked;
+
+        if (locked) {
+            if (elements === activeElements) {
+                elements.button.textContent =
+                    "下載中…";
+            } else {
+                elements.button.textContent =
+                    "等待目前測速完成";
+            }
+        } else {
+            elements.button.textContent =
+                elements.hasRun
+                    ? "再次下載及測速"
+                    : "下載及測速";
+        }
+    });
+}
+
+/* =====================================================================
+ * 建立 Server 紀錄
+ * ===================================================================== */
+
+function createBaseRecord(
+    file,
+    startedAt
+) {
+    return {
+        record_id: newID(),
+        session_id: sessionID,
+        batch_id: null,
+
+        mode: "individual",
+        file_index: file.linkNumber,
+        file_name: file.name,
+        file_label: file.label,
+        source_url: file.url,
+
+        status: "unknown",
+        bytes: 0,
+        elapsed_ms: 0,
+        average_MBps: 0,
+        average_mbps: 0,
+
+        /*
+         * 以下評級資料不顯示於網頁，
+         * 但仍會上傳到 Server。
+         */
+        test_profile: TEST_PROFILE,
+        bandwidth_limit_mbps:
+            BANDWIDTH_LIMIT_MBPS,
+        speed_ratio_percent: null,
+        speed_grade: null,
+
+        started_at: startedAt,
+        finished_at: null,
+
+        page_url: location.href,
+        user_agent: navigator.userAgent
+    };
+}
+
+/* =====================================================================
+ * 下載及測速
+ * ===================================================================== */
+
+async function downloadAndMeasure(
+    file,
+    elements
+) {
+    /*
+     * 若目前已有測速，直接忽略這次點擊。
+     * 不建立失敗紀錄。
+     */
+    if (downloadRunning) {
+        return;
+    }
+
+    downloadRunning = true;
+
+    setDownloadButtonsLocked(
+        true,
+        elements
+    );
+
+    const {
+        progress,
+        status
+    } = elements;
+
+    /*
+     * 如果同一卡片已有上一次測速的暫存檔案，
+     * 開始新測速前先釋放。
+     */
+    clearPreparedFile(elements);
+
+    progress.style.display = "block";
+    progress.removeAttribute("value");
+    progress.removeAttribute("max");
+
+    status.className = "status";
+    status.textContent =
+        "正在連接下載 Server…";
+
+    const startedAt =
+        new Date().toISOString();
+
+    const record =
+        createBaseRecord(
+            file,
+            startedAt
+        );
+
+    const startTime =
+        performance.now();
+
+    let receivedBytes = 0;
+    let reader = null;
+
+    try {
+        const response = await fetch(
+            createNoCacheURL(file.url),
+            {
+                method: "GET",
+                mode: "cors",
+                cache: "no-store",
+                credentials: "omit",
+                redirect: "follow"
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "HTTP " +
+                response.status +
+                " " +
+                response.statusText
+            );
+        }
+
+        if (!response.body) {
+            throw new Error(
+                "瀏覽器不支援串流下載"
+            );
+        }
+
+        const contentLength =
+            Number(
+                response.headers.get(
+                    "Content-Length"
+                )
+            ) || 0;
+
+        if (contentLength > 0) {
+            progress.max = contentLength;
+            progress.value = 0;
+        }
+
+        reader =
+            response.body.getReader();
+
+        const chunks = [];
+        let lastUpdate = 0;
+
+        while (true) {
+            const result =
+                await reader.read();
+
+            if (result.done) {
+                break;
+            }
+
+            chunks.push(result.value);
+
+            receivedBytes +=
+                result.value.byteLength;
+
+            const currentTime =
+                performance.now();
+
+            if (
+                currentTime - lastUpdate >= 100
+            ) {
+                const seconds = Math.max(
+                    (
+                        currentTime -
+                        startTime
+                    ) / 1000,
+                    0.001
+                );
+
+                const MBps =
+                    receivedBytes /
+                    seconds /
+                    1_000_000;
+
+                const Mbps =
+                    receivedBytes *
+                    8 /
+                    seconds /
+                    1_000_000;
+
+                if (contentLength > 0) {
+                    progress.value =
+                        receivedBytes;
+
+                    const percent =
+                        receivedBytes /
+                        contentLength *
+                        100;
+
+                    status.textContent =
+                        formatBytes(
+                            receivedBytes
+                        ) +
+                        " / " +
+                        formatBytes(
+                            contentLength
+                        ) +
+                        "｜" +
+                        percent.toFixed(1) +
+                        "%｜" +
+                        MBps.toFixed(2) +
+                        " MB/s｜" +
+                        Mbps.toFixed(2) +
+                        " Mbps";
+                } else {
+                    status.textContent =
+                        formatBytes(
+                            receivedBytes
+                        ) +
+                        "｜" +
+                        MBps.toFixed(2) +
+                        " MB/s｜" +
+                        Mbps.toFixed(2) +
+                        " Mbps";
+                }
+
+                lastUpdate = currentTime;
+            }
+        }
+
+        const endTime =
+            performance.now();
+
+        const elapsedSeconds =
+            Math.max(
+                (
+                    endTime -
+                    startTime
+                ) / 1000,
+                0.001
+            );
+
+        const averageMBps =
+            receivedBytes /
+            elapsedSeconds /
+            1_000_000;
+
+        const averageMbps =
+            receivedBytes *
+            8 /
+            elapsedSeconds /
+            1_000_000;
+
+        /*
+         * 評級只寫入 Server 紀錄，
+         * 不顯示在網頁。
+         */
+        const rating =
+            gradeSpeed(averageMbps);
+
+        const contentType =
+            response.headers.get(
+                "Content-Type"
+            ) ||
+            "application/octet-stream";
+
+        const blob = new Blob(
+            chunks,
+            {
+                type: contentType
+            }
+        );
+
+        const filename =
+            createUniqueFilename(
+                file.saveAs || file.name
+            );
+
+        /*
+         * 只準備檔案，不自動開啟儲存視窗。
+         * Android 使用者即使不儲存，也可繼續其他測速。
+         */
+        prepareFileForSaving(
+            elements,
+            blob,
+            filename
+        );
+
+        progress.max =
+            receivedBytes || 1;
+
+        progress.value =
+            receivedBytes || 1;
+
+        record.status = "success";
+        record.bytes = receivedBytes;
+
+        record.elapsed_ms = Math.round(
+            elapsedSeconds * 1000
+        );
+
+        record.average_MBps = Number(
+            averageMBps.toFixed(3)
+        );
+
+        record.average_mbps = Number(
+            averageMbps.toFixed(3)
+        );
+
+        record.speed_ratio_percent =
+            rating.percent;
+
+        record.speed_grade =
+            rating.grade;
+
+        record.finished_at =
+            new Date().toISOString();
+
+        /*
+         * 畫面只顯示使用者指定的四項資料。
+         */
+        status.className =
+            "status success";
+
+        status.textContent =
+            "下載完成\n" +
+            "耗時：" +
+            elapsedSeconds.toFixed(2) +
+            " 秒\n" +
+            "平均速度：" +
+            averageMBps.toFixed(2) +
+            " MB/s（" +
+            averageMbps.toFixed(2) +
+            " Mbps）\n" +
+            "檔名：" +
+            filename;
+
+        /*
+         * 讓換行字元顯示為換行。
+         */
+        status.style.whiteSpace =
+            "pre-line";
+
+        /*
+         * 本頁平均只加入成功測速，
+         * 不會上傳至 Server。
+         */
+        addCompletedSpeed(
+            averageMbps
+        );
+
+        queueRecord(record);
+
+        return record;
+
+    } catch (error) {
+        console.error(error);
+
+        const endTime =
+            performance.now();
+
+        let message =
+            error.message ||
+            String(error);
+
+        if (
+            message.includes(
+                "Failed to fetch"
+            ) ||
+            message.includes(
+                "Load failed"
+            )
+        ) {
+            message =
+                "無法讀取檔案，可能是 CORS 或網路連線問題";
+        }
+
+        record.status = "failed";
+        record.bytes = receivedBytes;
+
+        record.elapsed_ms = Math.round(
+            endTime - startTime
+        );
+
+        record.finished_at =
+            new Date().toISOString();
+
+        record.error = message;
+
+        status.style.whiteSpace =
+            "normal";
+
+        status.className =
+            "status error";
+
+        status.textContent =
+            "下載失敗：" + message;
+
+        queueRecord(record);
+
+        return record;
+
+    } finally {
+        if (reader) {
+            try {
+                reader.releaseLock();
+            } catch (_) {
+                // 不影響下載結果
+            }
+        }
+
+        elements.hasRun = true;
+
+        downloadRunning = false;
+
+        setDownloadButtonsLocked(false);
+    }
+}
+
+/* =====================================================================
+ * 建立檔案卡片
+ * ===================================================================== */
+
+files.forEach(file => {
+    const card =
+        document.createElement("section");
+
+    card.className = "file-card";
+
+    const fileName =
+        document.createElement("div");
+
+    fileName.className = "file-name";
+
+    fileName.textContent =
+        file.label +
+        "：" +
+        file.name;
+
+    const fileURL =
+        document.createElement("div");
+
+    fileURL.className = "file-url";
+    fileURL.textContent = file.url;
+
+    const actions =
+        document.createElement("div");
+
+    actions.className = "file-actions";
+
+    const button =
+        document.createElement("button");
+
+    button.type = "button";
+    button.textContent =
+        "下載及測速";
+
+    const saveButton =
+        document.createElement("button");
+
+    saveButton.type = "button";
+    saveButton.className =
+        "save-button";
+
+    saveButton.textContent =
+        "儲存檔案（可選）";
+
+    saveButton.disabled = true;
+
+    const progress =
+        document.createElement("progress");
+
+    const status =
+        document.createElement("div");
+
+    status.className = "status";
+    status.textContent = "尚未開始";
+
+    const elements = {
+        button,
+        saveButton,
+        progress,
+        status,
+
+        hasRun: false,
+        objectURL: null,
+        downloadFilename: null
+    };
+
+    fileElements.push(elements);
+
+    button.addEventListener(
+        "click",
+        () => {
+            downloadAndMeasure(
+                file,
+                elements
+            );
+        }
+    );
+
+    saveButton.addEventListener(
+        "click",
+        () => {
+            savePreparedFile(elements);
+        }
+    );
+
+    actions.append(
+        button,
+        saveButton
+    );
+
+    card.append(
+        fileName,
+        fileURL,
+        actions,
+        progress,
+        status
+    );
+
+    fileList.appendChild(card);
+});
+
+/* =====================================================================
+ * 按鈕事件
+ * ===================================================================== */
+
+uploadButton.addEventListener(
+    "click",
+    flushPendingRecords
+);
+
+resetButton.addEventListener(
+    "click",
+    () => {
+        /*
+         * 測速進行中不執行清除，避免破壞目前畫面狀態。
+         */
+        if (downloadRunning) {
+            return;
+        }
+
+        fileElements.forEach(elements => {
+            clearPreparedFile(elements);
+
+            elements.progress.style.display =
+                "none";
+
+            elements.progress.removeAttribute(
+                "value"
+            );
+
+            elements.progress.removeAttribute(
+                "max"
+            );
+
+            elements.status.style.whiteSpace =
+                "normal";
+
+            elements.status.className =
+                "status";
+
+            elements.status.textContent =
+                "尚未開始";
+
+            elements.hasRun = false;
+
+            elements.button.textContent =
+                "下載及測速";
+        });
+
+        /*
+         * 只清除本頁平均。
+         * 不會刪除 localStorage 中等待上傳的紀錄。
+         */
+        completedSpeeds.length = 0;
+        updateOverallAverage();
+    }
+);
+
+/*
+ * 離開頁面時釋放所有 Blob object URL。
+ */
+window.addEventListener(
+    "pagehide",
+    () => {
+        fileElements.forEach(elements => {
+            if (elements.objectURL) {
+                URL.revokeObjectURL(
+                    elements.objectURL
+                );
+
+                elements.objectURL = null;
+            }
+        });
+    }
+);
+
+updateOverallAverage();
+updateUploadStatus();
 </script>
-
 </body>
 </html>
