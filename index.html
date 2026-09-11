@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>檔案下載速度測試</title>
-
+    <!-- html2canvas for screenshot -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -17,6 +18,61 @@
         .container { width: min(920px, 100%); margin: 0 auto; }
         h1 { margin: 0 0 10px; font-size: clamp(25px, 5vw, 36px); }
         .description { margin: 0 0 20px; color: #4b5563; line-height: 1.7; }
+
+        .user-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 20px;
+            margin: 16px 0 20px;
+            padding: 16px 20px;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 14px;
+            align-items: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+        .user-info .field {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .user-info label {
+            font-weight: 600;
+            color: #374151;
+            white-space: nowrap;
+        }
+        .user-info input, .user-info select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f9fafb;
+            min-width: 120px;
+        }
+        .user-info input:focus, .user-info select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .user-info .ip-display {
+            font-weight: 600;
+            color: #1e40af;
+            background: #eff6ff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .completion-badge {
+            margin-left: auto;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+        }
+        .completion-badge.done {
+            color: #059669;
+        }
+
         .average-panel {
             margin: 18px 0;
             padding: 16px 18px;
@@ -26,7 +82,9 @@
         }
         .average-title { margin-bottom: 6px; color: #1e3a8a; font-size: 16px; font-weight: 700; }
         .average-value { color: #1e40af; font-size: 18px; font-weight: 700; line-height: 1.5; }
+
         .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+
         .file-card {
             margin: 14px 0;
             padding: 18px;
@@ -35,9 +93,35 @@
             border-radius: 14px;
             box-shadow: 0 3px 10px rgba(0,0,0,0.06);
         }
-        .file-name { margin-bottom: 7px; font-size: 18px; font-weight: 700; word-break: break-all; }
-        .file-url { margin-bottom: 14px; color: #6b7280; font-size: 12px; line-height: 1.5; word-break: break-all; }
-        .file-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+        .file-card .file-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .file-name { font-size: 18px; font-weight: 700; word-break: break-all; }
+        .file-status-icon {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .file-status-icon.done { color: #059669; }
+        .file-status-icon.pending { color: #9ca3af; }
+
+        .file-url {
+            margin: 6px 0 14px;
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1.5;
+            word-break: break-all;
+        }
+
+        .file-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
         button {
             min-height: 46px;
             padding: 10px 18px;
@@ -51,28 +135,39 @@
         }
         button:hover:not(:disabled) { background: #1d4ed8; }
         button:disabled { background: #9ca3af; cursor: not-allowed; }
+
         .secondary-button { background: #374151; }
         .secondary-button:hover:not(:disabled) { background: #1f2937; }
+
         .save-button { display: none; background: #047857; }
         .save-button:hover:not(:disabled) { background: #065f46; }
+
+        .stop-button {
+            display: none;
+            background: #dc2626;
+        }
+        .stop-button:hover:not(:disabled) { background: #b91c1c; }
+
         .upload-button {
             background: #dc2626;
         }
-        .upload-button:hover:not(:disabled) {
-            background: #b91c1c;
-        }
+        .upload-button:hover:not(:disabled) { background: #b91c1c; }
         .upload-button.success {
             background: #059669;
         }
-        .upload-button.success:hover:not(:disabled) {
-            background: #047857;
+        .upload-button.success:hover:not(:disabled) { background: #047857; }
+
+        .screenshot-button {
+            background: #7c3aed;
         }
+        .screenshot-button:hover:not(:disabled) { background: #6d28d9; }
+
         progress { display: none; width: 100%; height: 19px; margin-top: 15px; }
         .status { min-height: 25px; margin-top: 12px; color: #374151; line-height: 1.6; word-break: break-word; }
         .success { color: #047857; font-weight: 600; }
         .error { color: #dc2626; font-weight: 600; }
         .warning { color: #92400e; font-weight: 600; }
-        .info { color: #1e40af; font-weight: 600; }
+
         .upload-panel {
             margin-top: 24px;
             padding: 18px;
@@ -83,6 +178,7 @@
         }
         .upload-panel-title { margin: 0 0 8px; font-size: 19px; font-weight: 700; }
         .upload-panel-description { margin: 0; color: #4b5563; line-height: 1.6; }
+
         .api-info {
             margin-top: 20px;
             padding: 14px;
@@ -93,6 +189,7 @@
         .api-info.success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
         .api-info.warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
         .api-info.error { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+
         .warning-box {
             margin-top: 20px;
             padding: 14px;
@@ -102,42 +199,22 @@
             color: #92400e;
             line-height: 1.6;
         }
-        .method-selector {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
-            padding: 12px;
-            background: #f3f4f6;
-            border-radius: 8px;
-            align-items: center;
-        }
-        .method-selector label {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .method-selector input[type="radio"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
+
         @media (max-width: 600px) {
             body { padding: 14px; }
             .file-card { padding: 15px; }
             .file-actions { display: block; }
             button { width: 100%; }
             .file-actions button + button { margin-top: 10px; }
-            .method-selector { flex-direction: column; align-items: flex-start; }
+            .user-info { flex-direction: column; align-items: stretch; }
+            .user-info .field { flex-wrap: wrap; }
+            .completion-badge { margin-left: 0; }
         }
     </style>
 </head>
 <body>
-<div class="container">
+<div class="container" id="page-container">
     <h1>檔案下載速度測試</h1>
-
     <p class="description">
         點擊個別檔案開始下載及測速。每次請求都會加入隨機參數，
         並要求瀏覽器不要使用 HTTP 快取。
@@ -146,12 +223,29 @@
         必須按下「上傳紀錄」才會上傳至 Server。
     </p>
 
-    <div class="warning-box">
-        <strong>💡 建議：</strong><br>
-        為獲得最佳體驗，請使用內聯網地址訪問：
-        <code style="background:#fff;padding:2px 8px;border-radius:4px;display:inline-block;margin-top:4px;">
-            http://923test.local/index.html
-        </code>
+    <div class="user-info" id="user-info-area">
+        <div class="field">
+            <label>📶 本機 IP：</label>
+            <span class="ip-display" id="ip-address">偵測中...</span>
+        </div>
+        <div class="field">
+            <label>📍 Zone：</label>
+            <select id="zone-select">
+                <option value="">— 請選擇 —</option>
+                <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                <option value="D">D</option><option value="E">E</option><option value="F">F</option>
+                <option value="G">G</option><option value="H">H</option><option value="I">I</option>
+                <option value="J">J</option><option value="K">K</option><option value="L">L</option>
+                <option value="M">M</option><option value="N">N</option><option value="O">O</option>
+                <option value="P">P</option><option value="Q">Q</option><option value="R">R</option>
+                <option value="S">S</option><option value="T">T</option><option value="U">U</option>
+                <option value="V">V</option><option value="W">W</option><option value="X">X</option>
+                <option value="Y">Y</option>
+            </select>
+        </div>
+        <div class="completion-badge" id="completion-badge">
+            上傳限制：已取消
+        </div>
     </div>
 
     <section class="average-panel">
@@ -164,44 +258,38 @@
     <section class="upload-panel">
         <h2 class="upload-panel-title">測速紀錄上傳</h2>
         <p class="upload-panel-description">
-            下載及測速完成後，紀錄會先儲存在此瀏覽器。
-            請按下「上傳紀錄」傳送到 Server。
+            <strong>已取消限制：</strong>
+            不論有沒有完成下載、不論成功或失敗、不論有沒有紀錄，
+            都可以直接按「上傳紀錄」。
+            如果沒有任何下載紀錄，系統會上傳一筆手動空白紀錄。
         </p>
-
-        <div class="method-selector">
-            <span style="font-weight:600;margin-right:5px;">上傳方式：</span>
-            <label>
-                <input type="radio" name="upload-method" value="beacon" checked>
-                Beacon (推薦)
-            </label>
-            <label>
-                <input type="radio" name="upload-method" value="image">
-                Image GET (繞過 CORS)
-            </label>
-            <label>
-                <input type="radio" name="upload-method" value="iframe">
-                iframe Form (無 CORS)
-            </label>
-        </div>
 
         <div id="upload-status" class="status">速度紀錄：檢查中……</div>
         <div class="toolbar">
             <button id="upload-records" class="upload-button" type="button">📤 上傳紀錄</button>
+            <button id="export-records" class="secondary-button" type="button" hidden>📥 匯出紀錄</button>
+            <button id="screenshot-btn" class="screenshot-button" type="button">📷 截圖</button>
             <button id="reset-results" class="secondary-button" type="button">清除畫面結果</button>
         </div>
     </section>
 
     <div id="api-info" class="api-info warning">連接狀態：偵測中……</div>
+
+    <div class="warning-box">
+        <strong>⚠️ 注意：</strong> 此網頁使用 JavaScript Fetch 讀取外部下載網址。
+        如果外部伺服器不允許跨來源存取（CORS），瀏覽器可能會阻止測速。
+        但上傳按鈕已不再受下載結果限制。
+    </div>
 </div>
 
 <script>
+"use strict";
+
 /* =====================================================================
  * 設定
  * ===================================================================== */
-
 const BANDWIDTH_LIMIT_MBPS = 12;
 const TEST_PROFILE = "wifi-12mbps";
-
 const GRADE_RULES = [
     { minPercent: 75, grade: "佳" },
     { minPercent: 50, grade: "好" },
@@ -209,64 +297,59 @@ const GRADE_RULES = [
     { minPercent: 0,  grade: "差" }
 ];
 
+const REQUIRED_DOWNLOADS = 4;
+
 /* =====================================================================
  * API 網址設定
  * ===================================================================== */
-
-// 自動檢測當前環境
 const currentHost = window.location.hostname;
-
-// 如果在內聯網，使用相對路徑
-const isIntranet = currentHost === '923test.local' || 
-                   currentHost === 'localhost' || 
+const isIntranet = currentHost === '923test.local' ||
+                   currentHost === 'localhost' ||
                    currentHost === '127.0.0.1' ||
                    /^192\.168\./.test(currentHost) ||
                    /^10\./.test(currentHost) ||
                    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(currentHost);
 
 function getAPIUrl() {
-    if (isIntranet) {
-        return '/api/download-results';
-    }
-    // 從 GitHub Pages 訪問，使用完整網址
+    if (isIntranet) return '/api/download-results';
     return 'http://923test.local/api/download-results';
 }
-
 function getHealthUrl() {
-    if (isIntranet) {
-        return '/api/health';
-    }
+    if (isIntranet) return '/api/health';
     return 'http://923test.local/api/health';
+}
+function getClientIpUrl() {
+    if (isIntranet) return '/api/client-ip';
+    return 'http://923test.local/api/client-ip';
 }
 
 /* =====================================================================
  * 下載網址清單
  * ===================================================================== */
-
 const files = [
     {
-        linkNumber: 8,
+        linkNumber: 1,
         label: "Link 1",
         name: "Cvent File 8.23 MB",
         saveAs: "Cvent_File_1.pdf",
         url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/241e3b3db2cc47e0bb056f054e4532dc.pdf"
     },
     {
-        linkNumber: 9,
+        linkNumber: 2,
         label: "Link 2",
         name: "Cvent File 9.73 MB",
         saveAs: "Cvent_File_2.pdf",
         url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/1915ccb2f13946f9acffc74f82c529c2.pdf"
     },
     {
-        linkNumber: 11,
+        linkNumber: 3,
         label: "Link 3",
         name: "Cvent File (.ai)",
         saveAs: "Cvent_File_3.ai",
         url: "https://custom-eur.cvent.com/4d8b46bb42e14086a1dafae4e5ab4b4e/files/25471d1b885b40259ecb57778db9272e.ai"
     },
     {
-        linkNumber: 10,
+        linkNumber: 4,
         label: "Cloudflare 20 MB 測速",
         name: "Cloudflare_20MB.bin",
         saveAs: "Cloudflare_20MB.bin",
@@ -277,27 +360,87 @@ const files = [
 /* =====================================================================
  * DOM 元素
  * ===================================================================== */
-
 const PENDING_KEY = "cvent_pending_download_records_v1";
+const COMPLETED_KEY = "cvent_completed_links_v1";
 
 const fileList = document.getElementById("file-list");
 const uploadStatus = document.getElementById("upload-status");
 const uploadButton = document.getElementById("upload-records");
+const exportButton = document.getElementById("export-records");
 const resetButton = document.getElementById("reset-results");
+const screenshotBtn = document.getElementById("screenshot-btn");
 const overallAverage = document.getElementById("overall-average");
 const apiInfo = document.getElementById("api-info");
-const uploadMethods = document.querySelectorAll('input[name="upload-method"]');
+const ipDisplay = document.getElementById("ip-address");
+const zoneSelect = document.getElementById("zone-select");
+const completionBadge = document.getElementById("completion-badge");
 
 const fileElements = [];
 const completedSpeeds = [];
 
 let uploadRunning = false;
 let downloadRunning = false;
+let uploadFailed = false;
+
+/* =====================================================================
+ * 完成狀態管理
+ * ===================================================================== */
+function getCompletedLinks() {
+    try {
+        const arr = JSON.parse(localStorage.getItem(COMPLETED_KEY) || "[]");
+        return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+}
+
+function saveCompletedLinks(arr) {
+    localStorage.setItem(COMPLETED_KEY, JSON.stringify(arr));
+    updateCompletionStatus();
+}
+
+function isLinkCompleted(linkNumber) {
+    return getCompletedLinks().includes(linkNumber);
+}
+
+function markLinkCompleted(linkNumber) {
+    const arr = getCompletedLinks();
+    if (!arr.includes(linkNumber)) {
+        arr.push(linkNumber);
+        saveCompletedLinks(arr);
+    } else {
+        updateCompletionStatus();
+    }
+}
+
+function updateCompletionStatus() {
+    const completed = getCompletedLinks();
+    const count = completed.length;
+    const total = REQUIRED_DOWNLOADS;
+
+    completionBadge.textContent = `🔓 上傳限制：已取消｜已試下載：${count} / ${total}`;
+    completionBadge.className = 'completion-badge done';
+
+    /*
+     * ✅ 核心修改：
+     * 永遠允許上傳。
+     * 不再因為 pending records = 0 而 disable。
+     */
+    uploadButton.disabled = uploadRunning ? true : false;
+
+    if (uploadFailed) {
+        exportButton.hidden = false;
+        exportButton.disabled = getPendingRecords().length === 0;
+    }
+
+    fileElements.forEach(elem => {
+        const isDone = completed.includes(elem.linkNumber);
+        elem.statusIcon.textContent = isDone ? '✅' : '⏳';
+        elem.statusIcon.className = 'file-status-icon ' + (isDone ? 'done' : 'pending');
+    });
+}
 
 /* =====================================================================
  * 工具函數
  * ===================================================================== */
-
 function newID() {
     if (window.crypto && typeof window.crypto.randomUUID === "function") {
         return window.crypto.randomUUID();
@@ -329,7 +472,9 @@ function formatBytes(bytes) {
     return value.toFixed(index === 0 ? 0 : 2) + " " + units[index];
 }
 
-function pad(value) { return String(value).padStart(2, "0"); }
+function pad(value) {
+    return String(value).padStart(2, "0");
+}
 
 function createUniqueFilename(originalName) {
     const dot = originalName.lastIndexOf(".");
@@ -342,57 +487,155 @@ function createUniqueFilename(originalName) {
 }
 
 function createNoCacheURL(originalURL) {
-    const url = new URL(originalURL);
+    const url = new URL(originalURL, window.location.href);
     url.searchParams.set("_nocache", newID());
     return url.toString();
 }
 
-function getSelectedMethod() {
-    for (const radio of uploadMethods) {
-        if (radio.checked) return radio.value;
-    }
-    return 'beacon';
+function isPrivateIPv4(ip) {
+    return /^10\./.test(ip) ||
+           /^192\.168\./.test(ip) ||
+           /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
+}
+
+function extractIPv4(text) {
+    if (!text) return null;
+    const match = String(text).match(/(\d{1,3}(?:\.\d{1,3}){3})/);
+    return match ? match[1] : null;
 }
 
 /* =====================================================================
- * 更新 API 資訊
+ * IP 偵測
  * ===================================================================== */
+function getLocalIPByWebRTC() {
+    return new Promise((resolve) => {
+        const ips = new Set();
+        let finished = false;
+        let pc = null;
 
+        const done = () => {
+            if (finished) return;
+            finished = true;
+            try {
+                if (pc) pc.close();
+            } catch (_) {}
+            const list = Array.from(ips);
+            const privateIP = list.find(isPrivateIPv4) || null;
+            resolve(privateIP);
+        };
+
+        try {
+            pc = new RTCPeerConnection({
+                iceServers: [],
+                iceCandidatePoolSize: 1
+            });
+
+            try {
+                pc.createDataChannel('dummy');
+            } catch (_) {}
+
+            pc.onicecandidate = (event) => {
+                if (!event.candidate) {
+                    done();
+                    return;
+                }
+
+                const c = event.candidate.candidate || "";
+                const ipFromCandidate = extractIPv4(c);
+                if (ipFromCandidate) ips.add(ipFromCandidate);
+
+                if (event.candidate.address) {
+                    const ipFromAddress = extractIPv4(event.candidate.address);
+                    if (ipFromAddress) ips.add(ipFromAddress);
+                }
+            };
+
+            pc.createOffer()
+                .then(offer => pc.setLocalDescription(offer))
+                .catch(() => done());
+
+            setTimeout(done, 2500);
+        } catch (_) {
+            done();
+        }
+    });
+}
+
+async function getClientIPFromServer() {
+    try {
+        const res = await fetch(createNoCacheURL(getClientIpUrl()), {
+            method: "GET",
+            cache: "no-store",
+            credentials: "omit"
+        });
+
+        if (!res.ok) throw new Error("HTTP " + res.status);
+
+        const ct = res.headers.get("content-type") || "";
+        let raw = "";
+
+        if (ct.includes("application/json")) {
+            const data = await res.json();
+            raw = data.ip || data.client_ip || data.remote_addr || "";
+        } else {
+            raw = await res.text();
+        }
+
+        const first = String(raw).split(",")[0].trim();
+        return extractIPv4(first);
+    } catch (_) {
+        return null;
+    }
+}
+
+async function detectAndShowClientIP() {
+    ipDisplay.textContent = "偵測中...";
+    const localIP = await getLocalIPByWebRTC();
+
+    if (localIP) {
+        ipDisplay.textContent = localIP;
+        return localIP;
+    }
+
+    const serverIP = await getClientIPFromServer();
+
+    if (serverIP) {
+        ipDisplay.textContent = serverIP;
+        return serverIP;
+    }
+
+    ipDisplay.textContent = "無法取得（瀏覽器隱私限制）";
+    return null;
+}
+
+/* =====================================================================
+ * UI 更新
+ * ===================================================================== */
 function updateApiInfo() {
-    const url = getAPIUrl();
     const status = isIntranet ? 'success' : 'warning';
-    const msg = isIntranet ? 
-        '✅ 當前在內聯網環境，API：' + url :
-        '⚠️ 從 GitHub Pages 訪問，使用 ' + url + '（請選擇合適的上傳方式）';
+    const msg = isIntranet
+        ? '✅ 內聯網環境｜Upload API：' + getAPIUrl() + '｜Client IP API：' + getClientIpUrl()
+        : '⚠️ 外部環境｜Upload API：' + getAPIUrl() + '｜Client IP API：' + getClientIpUrl();
+
     apiInfo.className = 'api-info ' + status;
     apiInfo.textContent = msg;
 }
 
-/* =====================================================================
- * 更新上傳按鈕顏色
- * ===================================================================== */
-
 function setUploadButtonColor(isSuccess = false) {
-    if (isSuccess) {
-        uploadButton.className = 'upload-button success';
-    } else {
-        uploadButton.className = 'upload-button';
-    }
+    uploadButton.className = isSuccess ? 'upload-button success' : 'upload-button';
 }
-
-/* =====================================================================
- * 本頁平均速度
- * ===================================================================== */
 
 function updateOverallAverage() {
     if (completedSpeeds.length === 0) {
-        overallAverage.textContent = "尚未完成任何測速";
+        overallAverage.textContent = "尚未完成任何成功測速";
         return;
     }
+
     const totalMbps = completedSpeeds.reduce((sum, speed) => sum + speed, 0);
     const averageMbps = totalMbps / completedSpeeds.length;
     const averageMBps = averageMbps / 8;
-    overallAverage.textContent = "已完成 " + completedSpeeds.length + 
+
+    overallAverage.textContent = "成功完成 " + completedSpeeds.length +
         " 次｜平均 " + averageMBps.toFixed(2) + " MB/s（" + averageMbps.toFixed(2) + " Mbps）";
 }
 
@@ -403,40 +646,46 @@ function addCompletedSpeed(averageMbps) {
 }
 
 /* =====================================================================
- * 待上傳紀錄
+ * 待上傳紀錄管理
  * ===================================================================== */
-
 function getPendingRecords() {
     try {
         const records = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
         return Array.isArray(records) ? records : [];
-    } catch (_) { return []; }
+    } catch (_) {
+        return [];
+    }
 }
 
 function savePendingRecords(records) {
     localStorage.setItem(PENDING_KEY, JSON.stringify(records));
     updateUploadStatus();
+    updateCompletionStatus();
 }
 
 function queueRecord(record) {
     const records = getPendingRecords();
+
     if (!records.some(item => item.record_id === record.record_id)) {
         records.push(record);
         savePendingRecords(records);
         setUploadButtonColor(false);
+        updateCompletionStatus();
     }
 }
 
 function updateUploadStatus(message = "") {
     const count = getPendingRecords().length;
+
     if (message) {
         uploadStatus.textContent = message + "｜未上傳紀錄：" + count + " 筆";
         return;
     }
+
     if (count === 0) {
-        uploadStatus.className = "status success";
-        uploadStatus.textContent = "目前沒有等待上傳的速度紀錄";
-        setUploadButtonColor(true);
+        uploadStatus.className = "status";
+        uploadStatus.textContent = "目前沒有等待上傳的速度紀錄，但仍可直接上傳空白手動紀錄";
+        setUploadButtonColor(false);
     } else {
         uploadStatus.className = "status";
         uploadStatus.textContent = "等待手動上傳至 Server 的紀錄：" + count + " 筆";
@@ -445,17 +694,73 @@ function updateUploadStatus(message = "") {
 }
 
 /* =====================================================================
- * 上傳方法 1：Beacon
+ * 建立空白手動上傳紀錄
  * ===================================================================== */
+function createManualEmptyUploadRecord() {
+    const now = new Date().toISOString();
 
+    return {
+        record_id: newID(),
+        session_id: sessionID,
+        batch_id: null,
+        mode: "manual_empty_upload",
+        file_index: null,
+        file_name: null,
+        file_label: "Manual Empty Upload",
+        source_url: null,
+        status: "manual_empty_upload",
+        bytes: 0,
+        elapsed_ms: 0,
+        average_MBps: 0,
+        average_mbps: 0,
+        test_profile: TEST_PROFILE,
+        bandwidth_limit_mbps: BANDWIDTH_LIMIT_MBPS,
+        speed_ratio_percent: null,
+        speed_grade: null,
+        started_at: now,
+        finished_at: now,
+        page_url: location.href,
+        user_agent: navigator.userAgent,
+        zone: zoneSelect.value || null,
+        click_time: now,
+        client_ip: ipDisplay.textContent
+    };
+}
+
+/* =====================================================================
+ * 匯出功能
+ * ===================================================================== */
+function exportPendingRecords() {
+    const records = getPendingRecords();
+
+    if (records.length === 0) {
+        alert('沒有待上傳的紀錄可匯出');
+        return;
+    }
+
+    const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = `download-records-${new Date().toISOString().slice(0,10)}.json`;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+}
+
+/* =====================================================================
+ * 上傳方法
+ * ===================================================================== */
 function uploadWithBeacon(records) {
     return new Promise((resolve, reject) => {
         try {
-            const blob = new Blob(
-                [JSON.stringify({ records })],
-                { type: 'application/json' }
-            );
+            const blob = new Blob([JSON.stringify({ records })], { type: 'application/json' });
             const sent = navigator.sendBeacon(getAPIUrl(), blob);
+
             if (sent) {
                 resolve({ ok: true, text: '已透過 Beacon 發送' });
             } else {
@@ -468,204 +773,82 @@ function uploadWithBeacon(records) {
 }
 
 /* =====================================================================
- * 上傳方法 2：Image GET (繞過 CORS)
+ * 上傳紀錄主函數
  * ===================================================================== */
-
-function uploadWithImage(records) {
-    return new Promise((resolve, reject) => {
-        try {
-            // 將資料編碼到 URL (GET 請求)
-            const data = JSON.stringify({ records });
-            const encoded = encodeURIComponent(data);
-            const url = getAPIUrl() + '?data=' + encoded + '&_=' + Date.now();
-            
-            const img = new Image();
-            let resolved = false;
-            
-            const timeout = setTimeout(() => {
-                if (!resolved) {
-                    resolved = true;
-                    img.src = '';
-                    reject(new Error('Image 請求逾時（5秒）'));
-                }
-            }, 5000);
-            
-            img.onload = () => {
-                if (!resolved) {
-                    resolved = true;
-                    clearTimeout(timeout);
-                    resolve({ ok: true, text: '已透過 Image 發送' });
-                }
-            };
-            
-            img.onerror = () => {
-                if (!resolved) {
-                    resolved = true;
-                    clearTimeout(timeout);
-                    // 即使 onerror 觸發，請求可能已經發送
-                    // 所以我們當作成功（因為無法確認）
-                    resolve({ ok: true, text: '已發送（Image 載入失敗，但請求可能已發送）' });
-                }
-            };
-            
-            img.src = url;
-            
-            // 如果 img 沒有觸發任何事件，10 秒後強制完成
-            setTimeout(() => {
-                if (!resolved) {
-                    resolved = true;
-                    img.src = '';
-                    resolve({ ok: true, text: '已發送（Image 無回應）' });
-                }
-            }, 10000);
-            
-        } catch (error) {
-            reject(new Error('Image 錯誤：' + (error.message || String(error))));
-        }
-    });
-}
-
-/* =====================================================================
- * 上傳方法 3：iframe Form (無 CORS)
- * ===================================================================== */
-
-function uploadWithIframe(records) {
-    return new Promise((resolve, reject) => {
-        try {
-            const iframeId = 'upload_iframe_' + Date.now();
-            const formId = 'upload_form_' + Date.now();
-
-            // 創建 iframe
-            const iframe = document.createElement('iframe');
-            iframe.id = iframeId;
-            iframe.name = iframeId;
-            iframe.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
-            document.body.appendChild(iframe);
-
-            // 創建 form
-            const form = document.createElement('form');
-            form.id = formId;
-            form.method = 'POST';
-            form.action = getAPIUrl();
-            form.target = iframeId;
-            form.enctype = 'application/x-www-form-urlencoded';
-            form.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
-            document.body.appendChild(form);
-
-            // 將資料放入 form
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'records';
-            input.value = JSON.stringify(records);
-            form.appendChild(input);
-
-            let resolved = false;
-
-            // 監聽 iframe 載入
-            iframe.onload = () => {
-                if (!resolved) {
-                    resolved = true;
-                    setTimeout(() => {
-                        form.remove();
-                        iframe.remove();
-                    }, 500);
-                    resolve({ ok: true, text: '已透過 iframe Form 發送' });
-                }
-            };
-
-            // 逾時
-            setTimeout(() => {
-                if (!resolved) {
-                    resolved = true;
-                    form.remove();
-                    iframe.remove();
-                    resolve({ ok: true, text: '已發送（iframe 無回應）' });
-                }
-            }, 10000);
-
-            form.submit();
-
-        } catch (error) {
-            reject(new Error('iframe 錯誤：' + (error.message || String(error))));
-        }
-    });
-}
-
-/* =====================================================================
- * 上傳紀錄（主函數）
- * ===================================================================== */
-
 async function flushPendingRecords() {
     if (uploadRunning) return;
 
-    const records = getPendingRecords();
+    let records = getPendingRecords();
+
+    /*
+     * ✅ 核心修改：
+     * 如果沒有任何紀錄，直接建立一筆 manual_empty_upload。
+     * 即係無下載、下載失敗、中途停止未寫入都照樣可以上傳。
+     */
     if (records.length === 0) {
-        updateUploadStatus();
-        return;
+        records = [createManualEmptyUploadRecord()];
     }
 
     uploadRunning = true;
     uploadButton.disabled = true;
     uploadStatus.className = "status";
     updateUploadStatus("正在上傳");
+    uploadFailed = false;
 
-    const method = getSelectedMethod();
     const sentIDs = new Set(records.map(r => r.record_id));
 
     try {
-        let result;
-        const methodNames = {
-            'beacon': 'Beacon',
-            'image': 'Image GET',
-            'iframe': 'iframe Form'
-        };
+        await uploadWithBeacon(records);
 
-        switch (method) {
-            case 'image':
-                result = await uploadWithImage(records);
-                break;
-            case 'iframe':
-                result = await uploadWithIframe(records);
-                break;
-            case 'beacon':
-            default:
-                result = await uploadWithBeacon(records);
-                break;
-        }
-
-        // 移除已上傳的紀錄
         const remaining = getPendingRecords().filter(r => !sentIDs.has(r.record_id));
         savePendingRecords(remaining);
 
         uploadStatus.className = "status success";
-        updateUploadStatus("✅ 成功上傳 " + records.length + " 筆紀錄（方式：' + methodNames[method] + '）");
+
+        if (records.length === 1 && records[0].status === "manual_empty_upload") {
+            uploadStatus.textContent = "✅ 已成功上傳空白手動紀錄｜未上傳紀錄：0 筆";
+        } else {
+            uploadStatus.textContent = "✅ 成功上傳 " + records.length + " 筆紀錄｜未上傳紀錄：" + remaining.length + " 筆";
+        }
 
         setUploadButtonColor(true);
+        uploadFailed = false;
+        exportButton.hidden = true;
 
     } catch (error) {
         console.error("上傳失敗：", error);
+
         let msg = error.message || String(error);
 
         if (msg.includes('Failed to fetch') || msg.includes('Load failed')) {
-            msg = '無法連接伺服器。請嘗試切換上傳方式，或使用內聯網地址訪問。';
+            msg = '無法連接伺服器。請檢查後端服務。';
         }
 
         uploadStatus.className = "status error";
-        updateUploadStatus("❌ 上傳失敗：" + msg);
-
+        uploadStatus.textContent = "❌ 上傳失敗：" + msg + "｜未上傳紀錄：" + getPendingRecords().length + " 筆";
         setUploadButtonColor(false);
+
+        uploadFailed = true;
+        exportButton.hidden = false;
+        exportButton.disabled = getPendingRecords().length === 0;
+
     } finally {
         uploadRunning = false;
+
+        /*
+         * ✅ 完成後仍然保持上傳按鈕可按
+         */
         uploadButton.disabled = false;
+        updateCompletionStatus();
     }
 }
 
 /* =====================================================================
  * 檔案儲存
  * ===================================================================== */
-
 function clearPreparedFile(elements) {
     if (elements.objectURL) URL.revokeObjectURL(elements.objectURL);
+
     elements.objectURL = null;
     elements.downloadFilename = null;
     elements.saveButton.style.display = "none";
@@ -674,6 +857,7 @@ function clearPreparedFile(elements) {
 
 function prepareFileForSaving(elements, blob, filename) {
     clearPreparedFile(elements);
+
     elements.objectURL = URL.createObjectURL(blob);
     elements.downloadFilename = filename;
     elements.saveButton.disabled = false;
@@ -682,35 +866,41 @@ function prepareFileForSaving(elements, blob, filename) {
 
 function savePreparedFile(elements) {
     if (!elements.objectURL || !elements.downloadFilename) return;
+
     const link = document.createElement("a");
+
     link.href = elements.objectURL;
     link.download = elements.downloadFilename;
     link.style.display = "none";
+
     document.body.appendChild(link);
     link.click();
     link.remove();
 }
 
 /* =====================================================================
- * 全頁測速鎖
+ * 下載測速
  * ===================================================================== */
-
 function setDownloadButtonsLocked(locked, activeElements = null) {
     fileElements.forEach(elements => {
         elements.button.disabled = locked;
-        if (locked) {
-            elements.button.textContent = elements === activeElements ? "下載中…" : "等待目前測速完成";
+
+        if (locked && elements === activeElements) {
+            elements.button.textContent = "下載中…";
+            elements.stopButton.style.display = "inline-block";
+        } else if (locked) {
+            elements.button.textContent = "等待目前測速完成";
+            elements.stopButton.style.display = "none";
         } else {
             elements.button.textContent = elements.hasRun ? "再次下載及測速" : "下載及測速";
+            elements.stopButton.style.display = "none";
         }
     });
 }
 
-/* =====================================================================
- * 建立 Server 紀錄
- * ===================================================================== */
+function createBaseRecord(file, startedAt, clickTime) {
+    const zone = zoneSelect.value || null;
 
-function createBaseRecord(file, startedAt) {
     return {
         record_id: newID(),
         session_id: sessionID,
@@ -732,31 +922,37 @@ function createBaseRecord(file, startedAt) {
         started_at: startedAt,
         finished_at: null,
         page_url: location.href,
-        user_agent: navigator.userAgent
+        user_agent: navigator.userAgent,
+        zone: zone,
+        click_time: clickTime,
+        client_ip: ipDisplay.textContent
     };
 }
-
-/* =====================================================================
- * 下載及測速
- * ===================================================================== */
 
 async function downloadAndMeasure(file, elements) {
     if (downloadRunning) return;
 
-    downloadRunning = true;
-    setDownloadButtonsLocked(true, elements);
+    clearPreparedFile(elements);
 
     const { progress, status } = elements;
-    clearPreparedFile(elements);
 
     progress.style.display = "block";
     progress.removeAttribute("value");
     progress.removeAttribute("max");
+
     status.className = "status";
+    status.style.whiteSpace = "normal";
     status.textContent = "正在連接下載 Server…";
 
+    const clickTime = new Date().toISOString();
+    const controller = new AbortController();
+
+    elements.abortController = controller;
+    downloadRunning = true;
+    setDownloadButtonsLocked(true, elements);
+
     const startedAt = new Date().toISOString();
-    const record = createBaseRecord(file, startedAt);
+    const record = createBaseRecord(file, startedAt, clickTime);
     const startTime = performance.now();
 
     let receivedBytes = 0;
@@ -768,27 +964,40 @@ async function downloadAndMeasure(file, elements) {
             mode: "cors",
             cache: "no-store",
             credentials: "omit",
-            redirect: "follow"
+            redirect: "follow",
+            signal: controller.signal
         });
 
-        if (!response.ok) throw new Error("HTTP " + response.status + " " + response.statusText);
-        if (!response.body) throw new Error("瀏覽器不支援串流下載");
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status + " " + response.statusText);
+        }
+
+        if (!response.body) {
+            throw new Error("瀏覽器不支援串流下載");
+        }
 
         const contentLength = Number(response.headers.get("Content-Length")) || 0;
-        if (contentLength > 0) { progress.max = contentLength; progress.value = 0; }
+
+        if (contentLength > 0) {
+            progress.max = contentLength;
+            progress.value = 0;
+        }
 
         reader = response.body.getReader();
+
         const chunks = [];
         let lastUpdate = 0;
 
         while (true) {
             const result = await reader.read();
+
             if (result.done) break;
 
             chunks.push(result.value);
             receivedBytes += result.value.byteLength;
 
             const currentTime = performance.now();
+
             if (currentTime - lastUpdate >= 100) {
                 const seconds = Math.max((currentTime - startTime) / 1000, 0.001);
                 const MBps = receivedBytes / seconds / 1_000_000;
@@ -797,11 +1006,13 @@ async function downloadAndMeasure(file, elements) {
                 if (contentLength > 0) {
                     progress.value = receivedBytes;
                     const percent = (receivedBytes / contentLength) * 100;
+
                     status.textContent = formatBytes(receivedBytes) + " / " + formatBytes(contentLength) +
                         "｜" + percent.toFixed(1) + "%｜" + MBps.toFixed(2) + " MB/s｜" + Mbps.toFixed(2) + " Mbps";
                 } else {
                     status.textContent = formatBytes(receivedBytes) + "｜" + MBps.toFixed(2) + " MB/s｜" + Mbps.toFixed(2) + " Mbps";
                 }
+
                 lastUpdate = currentTime;
             }
         }
@@ -831,17 +1042,48 @@ async function downloadAndMeasure(file, elements) {
 
         status.className = "status success";
         status.style.whiteSpace = "pre-line";
-        status.textContent = "下載完成\n耗時：" + elapsedSeconds.toFixed(2) + " 秒\n平均速度：" +
-            averageMBps.toFixed(2) + " MB/s（" + averageMbps.toFixed(2) + " Mbps）\n檔名：" + filename;
+        status.textContent =
+            "下載完成\n" +
+            "耗時：" + elapsedSeconds.toFixed(2) + " 秒\n" +
+            "平均速度：" + averageMBps.toFixed(2) + " MB/s（" + averageMbps.toFixed(2) + " Mbps）\n" +
+            "檔名：" + filename;
 
         addCompletedSpeed(averageMbps);
         queueRecord(record);
-        return record;
+        markLinkCompleted(file.linkNumber);
 
     } catch (error) {
-        console.error(error);
         const endTime = performance.now();
+
+        if (error.name === 'AbortError' || error.message === 'Aborted') {
+            record.status = "aborted";
+            record.bytes = receivedBytes;
+            record.elapsed_ms = Math.round(endTime - startTime);
+            record.finished_at = new Date().toISOString();
+            record.error = "user_aborted";
+
+            status.className = "status warning";
+            status.style.whiteSpace = "normal";
+            status.textContent = "⚠️ 下載已中止，已記錄；亦可直接上傳";
+
+            if (reader) {
+                try { reader.releaseLock(); } catch (_) {}
+            }
+
+            progress.style.display = "none";
+            progress.removeAttribute("value");
+            progress.removeAttribute("max");
+
+            queueRecord(record);
+            markLinkCompleted(file.linkNumber);
+
+            return;
+        }
+
+        console.error(error);
+
         let message = error.message || String(error);
+
         if (message.includes("Failed to fetch") || message.includes("Load failed")) {
             message = "無法讀取檔案，可能是 CORS 或網路連線問題";
         }
@@ -854,29 +1096,96 @@ async function downloadAndMeasure(file, elements) {
 
         status.style.whiteSpace = "normal";
         status.className = "status error";
-        status.textContent = "下載失敗：" + message;
+        status.textContent = "下載失敗：" + message + "。已記錄；亦可直接上傳。";
+
         queueRecord(record);
-        return record;
+        markLinkCompleted(file.linkNumber);
 
     } finally {
-        if (reader) { try { reader.releaseLock(); } catch (_) {} }
+        if (reader) {
+            try { reader.releaseLock(); } catch (_) {}
+        }
+
         elements.hasRun = true;
         downloadRunning = false;
+        elements.abortController = null;
+
         setDownloadButtonsLocked(false);
+
+        /*
+         * ✅ 保持上傳永遠可按
+         */
+        uploadButton.disabled = false;
+        updateCompletionStatus();
+    }
+}
+
+function stopDownload(elements) {
+    if (elements.abortController) {
+        elements.abortController.abort();
+        elements.abortController = null;
+        elements.stopButton.style.display = "none";
+        elements.button.disabled = false;
+        elements.button.textContent = elements.hasRun ? "再次下載及測速" : "下載及測速";
+    }
+
+    /*
+     * ✅ 就算 Abort 還未完成 callback，都立即保持上傳可按
+     */
+    uploadButton.disabled = false;
+}
+
+/* =====================================================================
+ * 截圖功能
+ * ===================================================================== */
+async function takeScreenshot() {
+    if (typeof html2canvas === 'undefined') {
+        alert('html2canvas 尚未載入，請稍後再試或檢查網路連線。');
+        return;
+    }
+
+    try {
+        const canvas = await html2canvas(document.getElementById('page-container'), {
+            scale: 1.2,
+            backgroundColor: '#f3f4f6',
+            allowTaint: false,
+            useCORS: true,
+            logging: false,
+        });
+
+        const link = document.createElement('a');
+
+        link.download = `screenshot-${new Date().toISOString().slice(0,10)}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+    } catch (err) {
+        alert('截圖失敗：' + err.message);
     }
 }
 
 /* =====================================================================
  * 建立檔案卡片
  * ===================================================================== */
-
 files.forEach(file => {
     const card = document.createElement("section");
     card.className = "file-card";
 
-    const fileName = document.createElement("div");
+    const header = document.createElement("div");
+    header.className = "file-header";
+
+    const fileName = document.createElement("span");
     fileName.className = "file-name";
     fileName.textContent = file.label + "：" + file.name;
+
+    const statusIcon = document.createElement("span");
+    statusIcon.className = isLinkCompleted(file.linkNumber)
+        ? "file-status-icon done"
+        : "file-status-icon pending";
+    statusIcon.textContent = isLinkCompleted(file.linkNumber) ? "✅" : "⏳";
+
+    header.appendChild(fileName);
+    header.appendChild(statusIcon);
 
     const fileURL = document.createElement("div");
     fileURL.className = "file-url";
@@ -889,6 +1198,12 @@ files.forEach(file => {
     button.type = "button";
     button.textContent = "下載及測速";
 
+    const stopButton = document.createElement("button");
+    stopButton.type = "button";
+    stopButton.className = "stop-button";
+    stopButton.textContent = "⏹ 停止";
+    stopButton.style.display = "none";
+
     const saveButton = document.createElement("button");
     saveButton.type = "button";
     saveButton.className = "save-button";
@@ -896,69 +1211,142 @@ files.forEach(file => {
     saveButton.disabled = true;
 
     const progress = document.createElement("progress");
+
     const status = document.createElement("div");
     status.className = "status";
     status.textContent = "尚未開始";
 
     const elements = {
-        button, saveButton, progress, status,
+        button,
+        stopButton,
+        saveButton,
+        progress,
+        status,
+        statusIcon,
+        linkNumber: file.linkNumber,
         hasRun: false,
         objectURL: null,
-        downloadFilename: null
+        downloadFilename: null,
+        abortController: null
     };
 
     fileElements.push(elements);
 
     button.addEventListener("click", () => downloadAndMeasure(file, elements));
+    stopButton.addEventListener("click", () => stopDownload(elements));
     saveButton.addEventListener("click", () => savePreparedFile(elements));
 
-    actions.append(button, saveButton);
-    card.append(fileName, fileURL, actions, progress, status);
+    actions.append(button, stopButton, saveButton);
+    card.append(header, fileURL, actions, progress, status);
     fileList.appendChild(card);
 });
 
 /* =====================================================================
  * 按鈕事件
  * ===================================================================== */
-
 uploadButton.addEventListener("click", flushPendingRecords);
+exportButton.addEventListener("click", exportPendingRecords);
+screenshotBtn.addEventListener("click", takeScreenshot);
 
 resetButton.addEventListener("click", () => {
     if (downloadRunning) return;
-    fileElements.forEach(elements => {
-        clearPreparedFile(elements);
-        elements.progress.style.display = "none";
-        elements.progress.removeAttribute("value");
-        elements.progress.removeAttribute("max");
-        elements.status.style.whiteSpace = "normal";
-        elements.status.className = "status";
-        elements.status.textContent = "尚未開始";
-        elements.hasRun = false;
-        elements.button.textContent = "下載及測速";
-    });
-    completedSpeeds.length = 0;
-    updateOverallAverage();
+
+    if (confirm('確定清除所有下載結果、待上傳紀錄和已試狀態嗎？')) {
+        fileElements.forEach(elements => {
+            clearPreparedFile(elements);
+
+            elements.progress.style.display = "none";
+            elements.progress.removeAttribute("value");
+            elements.progress.removeAttribute("max");
+
+            elements.status.style.whiteSpace = "normal";
+            elements.status.className = "status";
+            elements.status.textContent = "尚未開始";
+
+            elements.hasRun = false;
+            elements.button.textContent = "下載及測速";
+            elements.stopButton.style.display = "none";
+
+            if (elements.abortController) {
+                elements.abortController.abort();
+                elements.abortController = null;
+            }
+        });
+
+        completedSpeeds.length = 0;
+        updateOverallAverage();
+
+        localStorage.removeItem(COMPLETED_KEY);
+        localStorage.removeItem(PENDING_KEY);
+
+        uploadFailed = false;
+        exportButton.hidden = true;
+
+        updateUploadStatus();
+        updateCompletionStatus();
+        setUploadButtonColor(false);
+
+        /*
+         * ✅ 清除後仍然可以上傳
+         */
+        uploadButton.disabled = false;
+    }
 });
 
 window.addEventListener("pagehide", () => {
-    fileElements.forEach(e => { if (e.objectURL) { URL.revokeObjectURL(e.objectURL); e.objectURL = null; } });
+    fileElements.forEach(e => {
+        if (e.objectURL) {
+            URL.revokeObjectURL(e.objectURL);
+            e.objectURL = null;
+        }
+
+        if (e.abortController) {
+            e.abortController.abort();
+            e.abortController = null;
+        }
+    });
+});
+
+zoneSelect.addEventListener('change', () => {
+    localStorage.setItem('cvent_zone', zoneSelect.value);
 });
 
 /* =====================================================================
  * 初始化
  * ===================================================================== */
+async function init() {
+    const savedZone = localStorage.getItem('cvent_zone') || '';
 
-updateApiInfo();
-updateOverallAverage();
-updateUploadStatus();
-setUploadButtonColor(getPendingRecords().length === 0);
+    if (savedZone) zoneSelect.value = savedZone;
 
-console.log('🔍 當前環境：', {
-    host: currentHost,
-    isIntranet: isIntranet,
-    api: getAPIUrl(),
-    health: getHealthUrl()
-});
+    updateApiInfo();
+    updateOverallAverage();
+    updateUploadStatus();
+    updateCompletionStatus();
+    setUploadButtonColor(false);
+
+    /*
+     * ✅ 頁面一開就可以上傳
+     */
+    uploadButton.disabled = false;
+
+    await detectAndShowClientIP();
+
+    /*
+     * ✅ IP 偵測完成後仍保持可以上傳
+     */
+    uploadButton.disabled = false;
+
+    console.log('🔍 當前環境：', {
+        host: currentHost,
+        isIntranet,
+        api: getAPIUrl(),
+        health: getHealthUrl(),
+        clientIpApi: getClientIpUrl()
+    });
+}
+
+init();
 </script>
 </body>
 </html>
